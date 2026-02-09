@@ -25,8 +25,8 @@ document.addEventListener("DOMContentLoaded", function() {
   let devMode = false;
 let tapCount = 0;
 let tapTimer = null;
-const TAP_THRESHOLD = 10; // 10 Klicks
-const TAP_TIME = 3000; // 3 Sekunden für alle Klicks
+const TAP_THRESHOLD = 20; // 10 Klicks
+const TAP_TIME = 4000; // 3 Sekunden für alle Klicks
 
   // ===== CARD POOL =====
   const cardPool = [
@@ -117,6 +117,7 @@ function createDevOverlay() {
   div.innerHTML = `
     <b>DEV MODE</b><br>
     <button id="dev-add-dps">+100 DPS</button><br>
+    <button id="dev-reduce-dps">-100 DPS</button><br>
     <button id="dev-kill-boss">Boss Kill</button><br>
     <button id="dev-loot-all">Loot All</button>
   `;
@@ -126,6 +127,12 @@ function createDevOverlay() {
   // +DPS
   document.getElementById("dev-add-dps").onclick = () => {
     dps += 100;
+    dpstext.textContent = dps;
+  };
+
+  // -DPS
+  document.getElementById("dev-reduce-dps").onclick = () => {
+    dps = Math.max(1, dps - 100); // DPS nicht unter 1
     dpstext.textContent = dps;
   };
 
