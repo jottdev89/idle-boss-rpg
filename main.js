@@ -20,6 +20,13 @@ document.addEventListener("DOMContentLoaded", function() {
   let inventory = [];
   let lastTick = Date.now();
   let bossLooted = {};
+  let maxStageReached = 1;
+  
+  let devMode = false;
+let tapCount = 0;
+let tapTimer = null;
+const TAP_THRESHOLD = 10; // 10 Klicks
+const TAP_TIME = 3000; // 3 Sekunden für alle Klicks
 
   // ===== CARD POOL =====
   const cardPool = [
@@ -31,6 +38,124 @@ document.addEventListener("DOMContentLoaded", function() {
   ];
 
   // ===== UI Funktionen =====
+  const versionEl = document.getElementById("version");
+
+versionEl.addEventListener("click", () => {
+  tapCount++;
+
+  // Timer starten / resetten
+  if (tapTimer) clearTimeout(tapTimer);
+  tapTimer = setTimeout(() => {
+    tapCount = 0; // Reset nach 3 Sekunden
+  }, TAP_TIME);
+
+  if (tapCount >= TAP_THRESHOLD) {
+    tapCount = 0; // Reset Counter
+
+    const deviceHash = getDeviceHash(); // wir nutzen die gleiche Funktion wie vorher
+
+    if (!DEV_DEVICE_HASHES.includes(deviceHash)) {
+      alert("DEV HASH:\n" + deviceHash);
+      console.warn("DEV HASH:", deviceHash);
+      return;
+    }
+
+    // Dev Mode aktivieren / deaktivieren
+    devMode = !devMode;
+
+    if (devMode) {
+      createDevOverlay();
+      document.getElementById("dev-overlay").style.display = "block";
+    } else {
+      const o = document.getElementById("dev-overlay");
+      if (o) o.style.display = "none";
+    }
+
+    alert("DEV MODE " + (devMode ? "AKTIVIERT" : "DEAKTIVIERT"));
+  }
+});
+
+const DEV_DEVICE_HASHES = [
+  "dev_43658a99"
+];
+
+function getDeviceHash() {
+  const raw = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width + "x" + screen.height,
+    screen.colorDepth,
+    navigator.platform
+  ].join("|");
+
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+    hash |= 0;
+  }
+
+  return "dev_" + Math.abs(hash).toString(16);
+}
+
+function createDevOverlay() {
+  if (document.getElementById("dev-overlay")) return;
+
+  const div = document.createElement("div");
+  div.id = "dev-overlay";
+  div.style = `
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.9);
+    color: #0f0;
+    padding: 10px;
+    z-index: 99999;
+    font-size: 12px;
+    border-radius: 5px;
+  `;
+
+  div.innerHTML = `
+    <b>DEV MODE</b><br>
+    <button id="dev-add-dps">+100 DPS</button><br>
+    <button id="dev-kill-boss">Boss Kill</button><br>
+    <button id="dev-loot-all">Loot All</button>
+  `;
+
+  document.body.appendChild(div);
+
+  // +DPS
+  document.getElementById("dev-add-dps").onclick = () => {
+    dps += 100;
+    dpstext.textContent = dps;
+  };
+
+  // Boss Kill
+  document.getElementById("dev-kill-boss").onclick = () => {
+    bossHp = 0;
+    updateBossUI();
+    bossDefeated();
+  };
+
+  // Loot All
+  document.getElementById("dev-loot-all").onclick = () => {
+    if (!bossLooted[stage]) bossLooted[stage] = {};
+    const rarities = ["common", "rare", "epic", "eventdrop"];
+    rarities.forEach(r => {
+      if (!bossLooted[stage][r]) {
+        const pool = cardPool.filter(c => c.rarity === r && (!c.specialStage || c.specialStage === stage));
+        pool.forEach(card => {
+          addCardToInventory(card);
+          dps += card.cdps;
+          bossLooted[stage][r] = true;
+        });
+      }
+    });
+    dpstext.textContent = dps;
+    renderLootPreview();
+    renderBossLootList();
+  };
+}
+  
   stagePrev.addEventListener("click", () => {
     stage = Math.max(1, stage - 1);
     spawnBoss();
@@ -38,10 +163,12 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 
   stageNext.addEventListener("click", () => {
+     if (stage < maxStageReached){
     stage++;
     spawnBoss();
     renderLootPreview();
-  });
+  }
+});
 
   function updateBossUI() {
     const percent = (bossHp / bossMaxHp) * 100;
@@ -168,6 +295,7 @@ document.addEventListener("DOMContentLoaded", function() {
     } else {
       stage++;
     }
+    maxStageReached = Math.max(maxStageReached, stage);
 
     spawnBoss();
     saveGame();
@@ -206,7 +334,8 @@ function saveGame() {
     bossMaxHp,
     dps,
     inventory,
-    bossLooted
+    bossLooted,
+    maxStageReached
   };
 
   localStorage.setItem("idleGameSave", JSON.stringify(saveData));
@@ -225,6 +354,7 @@ function loadGame() {
     dps = data.dps ?? dps;
     inventory = data.inventory ?? [];
     bossLooted = data.bossLooted ?? {};
+    maxStageReached = data.maxStageReached ?? stage;
 
     dpstext.textContent = `${dps}`;
 
@@ -253,6 +383,7 @@ resetSaveBtn.addEventListener("click", () => {
   // 🔄 Game State zurücksetzen
   stage = 1;
   dps = 1;
+  maxStageReached = 1;
   inventory = [];
   bossLooted = {};
 
