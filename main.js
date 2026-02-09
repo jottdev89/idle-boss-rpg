@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", function() {
   // ===== CARD POOL =====
   const cardPool = [
     { id: 1, name: "stick", cdps: 1, chance: 1, rarity: "common" },
-    { id: 2, name: "sword", cdps: 5, chance: 0.5, rarity: "rare" },
+    { id: 2, name: "sword", cdps: 50, chance: 0.5, rarity: "rare" },
     { id: 3, name: "gun", cdps: 10, chance: 0.4, rarity: "epic" },
     // Special Item direkt als Card (nur für Stage 10)
     { id: 100, name: "Glubs wedding ring", cdps: 500, chance: 0.001, rarity: "eventdrop", specialStage : 20}
@@ -240,5 +240,32 @@ function loadGame() {
   spawnBoss();
   updateBossUI();
   idleLoop();
+  
+  const resetSaveBtn = document.getElementById("reset-save");
+
+resetSaveBtn.addEventListener("click", () => {
+  const ok = confirm("alles löschen?");
+  if (!ok) return;
+
+  // 🔥 Save löschen
+  localStorage.removeItem("idleGameSave");
+
+  // 🔄 Game State zurücksetzen
+  stage = 1;
+  dps = 1;
+  inventory = [];
+  bossLooted = {};
+
+  // Boss neu starten
+  spawnBoss();
+
+  // UI neu rendern
+  dpstext.textContent = `${dps}`;
+  renderInventory();
+  renderLootPreview();
+  renderBossLootList();
+
+  alert("alles gelöscht");
+});
 });
 setInterval(saveGame, 5000); // alle 5 Sekunden
