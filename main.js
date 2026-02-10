@@ -69,7 +69,7 @@
 });
 
 const DEV_DEVICE_HASHES = [
-  "dev_43658a99"
+  "dev_43658a99",
   "dev_77e84e93"
 ];
 
