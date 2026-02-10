@@ -1,5 +1,5 @@
-document.addEventListener("DOMContentLoaded", function() {
-  // ===== DOM Elemente =====
+  document.addEventListener("DOMContentLoaded", function() {
+// getElementById stuff
   const bossFill = document.getElementById("boss-hp-fill");
   const bossText = document.getElementById("boss-hp-text");
   const bossName = document.getElementById("boss-name");
@@ -7,12 +7,11 @@ document.addEventListener("DOMContentLoaded", function() {
   const inventoryEl = document.getElementById("inventory");
   const lootPreviewEl = document.getElementById("loot-preview");
   const bossLootListEl = document.getElementById("boss-loot-list");
-
   const stagePrev = document.getElementById("stage-prev");
   const stageNext = document.getElementById("stage-next");
   const resetCheckbox = document.getElementById("enable-reset");
-
-  // ===== GAME STATE =====
+  const versionEl = document.getElementById("version");
+// variables
   let stage = 1;
   let bossMaxHp = 13;
   let bossHp = bossMaxHp;
@@ -21,38 +20,33 @@ document.addEventListener("DOMContentLoaded", function() {
   let lastTick = Date.now();
   let bossLooted = {};
   let maxStageReached = 1;
-  
   let devMode = false;
-let tapCount = 0;
-let tapTimer = null;
-const TAP_THRESHOLD = 20; // 10 Klicks
-const TAP_TIME = 4000; // 3 Sekunden für alle Klicks
+  let tapCount = 0;
+  let tapTimer = null;
+  const TAP_THRESHOLD = 20;
+  const TAP_TIME = 4000;
 
-  // ===== CARD POOL =====
+// cards
   const cardPool = [
     { id: 1, name: "stick", cdps: 1, chance: 1, rarity: "common" },
     { id: 2, name: "sword", cdps: 5, chance: 0.7, rarity: "rare" },
     { id: 3, name: "gun", cdps: 10, chance: 0.4, rarity: "epic" },
-    // Special Item direkt als Card (nur für Stage 10)
+//specialStage for eventdrops
     { id: 100, name: "Glubs wedding ring", cdps: 500, chance: 0.001, rarity: "eventdrop", specialStage : 20}
   ];
-
-  // ===== UI Funktionen =====
-  const versionEl = document.getElementById("version");
-
-versionEl.addEventListener("click", () => {
+// everything for dev mode
+  versionEl.addEventListener("click", () => {
   tapCount++;
 
-  // Timer starten / resetten
   if (tapTimer) clearTimeout(tapTimer);
   tapTimer = setTimeout(() => {
-    tapCount = 0; // Reset nach 3 Sekunden
+    tapCount = 0;
   }, TAP_TIME);
 
   if (tapCount >= TAP_THRESHOLD) {
-    tapCount = 0; // Reset Counter
+    tapCount = 0;
 
-    const deviceHash = getDeviceHash(); // wir nutzen die gleiche Funktion wie vorher
+    const deviceHash = getDeviceHash();
 
     if (!DEV_DEVICE_HASHES.includes(deviceHash)) {
       alert("DEV HASH:\n" + deviceHash);
@@ -60,7 +54,6 @@ versionEl.addEventListener("click", () => {
       return;
     }
 
-    // Dev Mode aktivieren / deaktivieren
     devMode = !devMode;
 
     if (devMode) {
@@ -71,12 +64,13 @@ versionEl.addEventListener("click", () => {
       if (o) o.style.display = "none";
     }
 
-    alert("DEV MODE " + (devMode ? "AKTIVIERT" : "DEAKTIVIERT"));
+    alert("DEV MODE " + (devMode ? "on" : "off"));
   }
 });
 
 const DEV_DEVICE_HASHES = [
   "dev_43658a99"
+  "dev_77e84e93"
 ];
 
 function getDeviceHash() {
