@@ -28,12 +28,16 @@
 
 // cards
   const cardPool = [
-    { id: 1, name: "stick", cdps: 1, chance: 1, rarity: "common" },
-    { id: 2, name: "sword", cdps: 5, chance: 0.7, rarity: "rare" },
-    { id: 3, name: "gun", cdps: 10, chance: 0.4, rarity: "epic" },
-//specialStage for eventdrops
-    { id: 100, name: "Glubs wedding ring", cdps: 500, chance: 0.001, rarity: "eventdrop", specialStage : 20}
-  ];
+  { id: 1, name: "stick", cdps: 1, chance: 1, rarity: "common" },
+  { id: 2, name: "sword", cdps: 5, chance: 0.7, rarity: "rare" },
+  { id: 3, name: "gun", cdps: 10, chance: 0.4, rarity: "epic" },
+
+  // Legendary ab Stage 25
+  { id: 4, name: "Ancient Blade", cdps: 100, chance: 1, rarity: "legendary", minStage: 25 },
+
+  // Event Drop
+  { id: 100, name: "v0.0.1 Alpha Sword", cdps: 500, chance: 0.001, rarity: "eventdrop", specialStage: 20 }
+];
 // everything for dev mode
   versionEl.addEventListener("click", () => {
   tapCount++;
@@ -140,7 +144,7 @@ function createDevOverlay() {
   // Loot All
   document.getElementById("dev-loot-all").onclick = () => {
     if (!bossLooted[stage]) bossLooted[stage] = {};
-    const rarities = ["common", "rare", "epic", "eventdrop"];
+    const rarities = ["common", "rare", "epic", "legendary", "eventdrop"];
     rarities.forEach(r => {
       if (!bossLooted[stage][r]) {
         const pool = cardPool.filter(c => c.rarity === r && (!c.specialStage || c.specialStage === stage));
@@ -164,7 +168,7 @@ function createDevOverlay() {
   });
 
   stageNext.addEventListener("click", () => {
-     if (stage <= maxStageReached){
+     if (stage < maxStageReached){
     stage++;
     spawnBoss();
     renderLootPreview();
@@ -195,14 +199,19 @@ function createDevOverlay() {
   }
 
   function renderLootPreview() {
-    lootPreviewEl.innerHTML = "<b>loot available:</b><br>";
+   lootPreviewEl.innerHTML = `
+  <b>loot available:</b>
+  <span id="drop-info-btn" style="cursor:pointer; margin-left:6px;">dropchances: ℹ️</span>
+  <br>
+`;
 
     let any = false;
 
     cardPool.forEach(card => {
       // Nur Loot für diese Stage anzeigen
-      if (card.specialStage && card.specialStage !== stage) return;
-      if (bossLooted[stage] && bossLooted[stage][card.rarity]) return;
+     if (card.specialStage && card.specialStage !== stage) return;
+if (card.minStage && stage < card.minStage) return;
+if (bossLooted[stage] && bossLooted[stage][card.rarity]) return;
 
       const div = document.createElement("div");
       div.style.height = "14px";
@@ -216,20 +225,34 @@ function createDevOverlay() {
     if (!any) {
       lootPreviewEl.innerHTML += "<div>— no loot remaining —</div>";
     }
+    const infoBtn = document.getElementById("drop-info-btn");
+if (infoBtn) {
+  infoBtn.onclick = openDropChancesModal;
+}
   }
 
   // ===== Boss Loot Liste mit Farben =====
   function renderBossLootList() {
     bossLootListEl.innerHTML = "";
 
-    const rarities = ["common", "rare", "epic", "eventdrop"];
+    const rarities = ["common", "rare", "epic", "legendary", "eventdrop"];
     const maxStage = Math.max(stage, ...Object.keys(bossLooted).map(Number), 1);
 
     let anyVisible = false;
 
     for (let i = 1; i <= maxStage; i++) {
       const loot = bossLooted[i] || {};
-      const hasMissing = rarities.some(r => !loot[r] && (r !== "eventdrop" || cardPool.some(c => c.rarity==="eventdrop" && c.specialStage===i)));
+      const hasMissing = rarities.some(r =>
+  !loot[r] &&
+  (
+    (r !== "eventdrop" && r !== "legendary") ||
+    cardPool.some(c =>
+      c.rarity === r &&
+      (!c.specialStage || c.specialStage === i) &&
+      (!c.minStage || i >= c.minStage)
+    )
+  )
+);
 
       if (!hasMissing) continue;
 
@@ -240,14 +263,20 @@ function createDevOverlay() {
       row.textContent = `Boss ${i}: `;
 
       rarities.forEach(rarity => {
-        // Nur zeigen, wenn der Boss diese Rarity hat
-        if (rarity === "eventdrop" && !cardPool.some(c => c.rarity==="eventdrop" && c.specialStage===i)) return;
 
-        const span = document.createElement("span");
-        span.classList.add("card", rarity);
-        span.textContent = loot[rarity] ? "✅" : rarity;
-        row.appendChild(span);
-      });
+  const hasThisRarity = cardPool.some(c =>
+    c.rarity === rarity &&
+    (!c.specialStage || c.specialStage === i) &&
+    (!c.minStage || i >= c.minStage)
+  );
+
+  if (!hasThisRarity) return;
+
+  const span = document.createElement("span");
+  span.classList.add("card", rarity);
+  span.textContent = loot[rarity] ? "✅" : rarity;
+  row.appendChild(span);
+});
 
       bossLootListEl.appendChild(row);
     }
@@ -256,6 +285,83 @@ function createDevOverlay() {
       bossLootListEl.innerHTML += "<div><i>— all boss loot collected —</i></div>";
     }
   }
+  
+  function openDropChancesModal() {
+  if (document.getElementById("drop-chance-modal")) return;
+
+  const modal = document.createElement("div");
+  modal.id = "drop-chance-modal";
+  modal.style = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+
+  const box = document.createElement("div");
+  box.style = `
+    background: #111;
+    color: #fff;
+    padding: 12px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 320px;
+    font-size: 12px;
+  `;
+
+  box.innerHTML = `
+    <b>Drop Chances</b><br><br>
+    ${generateDropChanceList()}
+    <br>
+    <button id="close-drop-modal" style="margin-top:8px;width:100%;">close</button>
+  `;
+
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+
+  document.getElementById("close-drop-modal").onclick = () => modal.remove();
+
+  // Klick außerhalb schließt
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.remove();
+  };
+}
+
+function generateDropChanceList() {
+  return cardPool.map(card => {
+    let dropText = "";
+
+    // Event Drop (fester Boss)
+    if (card.specialStage) {
+      dropText = `drops at boss ${card.specialStage}`;
+    }
+    // Legendary / normale Min-Stage Drops
+    else if (card.minStage) {
+      dropText = `drops from boss ${card.minStage}+`;
+    }
+    // Immer verfügbar
+    else {
+      dropText = "drops always";
+    }
+
+    const percent = (card.chance * 100).toFixed(3);
+
+    return `
+      <div class="card ${card.rarity}" style="margin-bottom:4px;">
+        ${card.rarity} <!-- statt Name -->
+        <br>
+        <small>
+          Chance: <b>${percent}%</b><br>
+          ${dropText}
+        </small>
+      </div>
+    `;
+  }).join("");
+}
+
 
   // ===== Inventory & Loot =====
   function addCardToInventory(card) {
@@ -266,25 +372,33 @@ function createDevOverlay() {
   }
 
   function dropCard() {
-    if (!bossLooted[stage]) bossLooted[stage] = {};
+  if (!bossLooted[stage]) bossLooted[stage] = {};
 
-    ["common", "rare", "epic", "eventdrop"].forEach(rarity => {
-      // Spezielle Items nur bei richtiger Stage
-      const pool = cardPool.filter(c => c.rarity === rarity && (!c.specialStage || c.specialStage===stage));
-      if (pool.length===0 || bossLooted[stage][rarity]) return;
+  ["common", "rare", "epic", "legendary", "eventdrop"].forEach(rarity => {
 
-      const card = pool[Math.floor(Math.random() * pool.length)];
-      if (Math.random() < card.chance) {
-        addCardToInventory(card);
-        dps += card.cdps;
-        dpstext.textContent = `${dps}`;
-        bossLooted[stage][rarity] = true;
-      }
-    });
+    const pool = cardPool.filter(c =>
+      c.rarity === rarity &&
+      (!c.specialStage || c.specialStage === stage) &&
+      (!c.minStage || stage >= c.minStage)
+    );
 
-    renderLootPreview();
-    renderBossLootList();
-  }
+    // 🔴 WICHTIG: wenn es KEINEN Loot gibt → abbrechen
+    if (pool.length === 0) return;
+    if (bossLooted[stage][rarity]) return;
+
+    const card = pool[Math.floor(Math.random() * pool.length)];
+
+    if (Math.random() < card.chance) {
+      addCardToInventory(card);
+      dps += card.cdps;
+      dpstext.textContent = `${dps}`;
+      bossLooted[stage][rarity] = true;
+    }
+  });
+
+  renderLootPreview();
+  renderBossLootList();
+}
 
   // ===== Boss Funktionen =====
   function bossDefeated() {
@@ -305,9 +419,6 @@ function createDevOverlay() {
   function spawnBoss() {
     bossMaxHp = Math.floor(10 * Math.pow(1.3, stage));
     bossHp = bossMaxHp;
-    if (stage > 99){
-      stage = 100;
-    }
     bossName.textContent = `Boss #${stage}`;
     
     updateBossUI();
