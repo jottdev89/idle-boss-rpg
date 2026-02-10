@@ -164,7 +164,7 @@ function createDevOverlay() {
   });
 
   stageNext.addEventListener("click", () => {
-     if (stage < maxStageReached){
+     if (stage <= maxStageReached){
     stage++;
     spawnBoss();
     renderLootPreview();
