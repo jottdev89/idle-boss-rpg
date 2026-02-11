@@ -117,10 +117,39 @@ function createDevOverlay() {
     <button id="dev-add-dps">+100 DPS</button><br>
     <button id="dev-reduce-dps">-100 DPS</button><br>
     <button id="dev-kill-boss">Boss Kill</button><br>
-    <button id="dev-loot-all">Loot All</button>
+    <button id="dev-loot-all">Loot All</button><br>
+    <button id="reset-save">RESET SAVE</button>
   `;
 
   document.body.appendChild(div);
+
+  const resetSaveBtn = document.getElementById("reset-save");
+
+resetSaveBtn.addEventListener("click", () => {
+  const ok = confirm("alles löschen?");
+  if (!ok) return;
+
+  // 🔥 Save löschen
+  localStorage.removeItem("idleGameSave");
+
+  // 🔄 Game State zurücksetzen
+  stage = 1;
+  dps = 1;
+  maxStageReached = 1;
+  inventory = [];
+  bossLooted = {};
+
+  // Boss neu starten
+  spawnBoss();
+
+  // UI neu rendern
+  dpstext.textContent = `${dps}`;
+  renderInventory();
+  renderLootPreview();
+  renderBossLootList();
+
+  alert("alles gelöscht");
+});
 
   // +DPS
   document.getElementById("dev-add-dps").onclick = () => {
@@ -437,15 +466,20 @@ function dropCard() {
     saveGame();
   }
 
-  function spawnBoss() {
-    bossMaxHp = Math.floor(10 * Math.pow(1.3, stage));
-    bossHp = bossMaxHp;
-    bossName.textContent = `Boss #${stage}`;
-    
-    updateBossUI();
-    renderLootPreview();
-    renderBossLootList();
+function spawnBoss() {
+  if (stage < 20) {
+    bossMaxHp = Math.floor(13 * Math.pow(1.25, stage - 1)); // moderate Steigerung
+  } else {
+    bossMaxHp = Math.floor(13 * Math.pow(1.25, 19) * Math.pow(1.23, stage - 19)); // stärkere Steigerung ab Stage 20
   }
+
+  bossHp = bossMaxHp;
+  bossName.textContent = `Boss #${stage}`;
+    
+  updateBossUI();
+  renderLootPreview();
+  renderBossLootList();
+}
 
   // ===== Idle Loop =====
   function idleLoop() {
@@ -503,33 +537,5 @@ function loadGame() {
   spawnBoss();
   updateBossUI();
   idleLoop();
-  
-  const resetSaveBtn = document.getElementById("reset-save");
-
-resetSaveBtn.addEventListener("click", () => {
-  const ok = confirm("alles löschen?");
-  if (!ok) return;
-
-  // 🔥 Save löschen
-  localStorage.removeItem("idleGameSave");
-
-  // 🔄 Game State zurücksetzen
-  stage = 1;
-  dps = 1;
-  maxStageReached = 1;
-  inventory = [];
-  bossLooted = {};
-
-  // Boss neu starten
-  spawnBoss();
-
-  // UI neu rendern
-  dpstext.textContent = `${dps}`;
-  renderInventory();
-  renderLootPreview();
-  renderBossLootList();
-
-  alert("alles gelöscht");
-});
 });
 setInterval(saveGame, 5000); // alle 5 Sekunden
