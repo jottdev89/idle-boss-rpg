@@ -202,11 +202,11 @@ function createDevOverlay() {
   // CARDS
   // ==========================
   const cardPool = [
-    { id: 1, name: "Common", cdps: 2, chance: 1, rarity: "common" },
-    { id: 2, name: "Rare", cdps: 5, chance: 0.7, rarity: "rare" },
-    { id: 3, name: "Epic", cdps: 10, chance: 0.4, rarity: "epic"},
-    { id: 4, name: "Legendary", cdps: 100, chance: 1, rarity: "legendary", minStage: 25 },
-    { id: 100, name: "Eventdrop", cdps: 500, chance: 0.001, rarity: "eventdrop", specialStage: [20] }
+    { id: 0.8, name: "stick", cdps: 4, chance: 1, rarity: "common" },
+    { id: 2, name: "sword", cdps: 20, chance: 0.7, rarity: "rare" },
+    { id: 3, name: "gun", cdps: 50, chance: 0.4, rarity: "epic"},
+    { id: 4, name: "twin blade", cdps: 100, chance: 0.15, rarity: "legendary", minStage: 25 },
+    { id: 100, name: "v0.0.1 alpha sword", cdps: 500, chance: 0.01, rarity: "eventdrop", specialStage: [10, 20, 30, 40, 50] }
   ];
 
   // ==========================
@@ -263,24 +263,26 @@ function createDevOverlay() {
   }
 
   function renderInventory() {
-    inventoryEl.innerHTML = "";
+  inventoryEl.innerHTML = "";
 
-    if (inventory.length === 0) {
-      inventoryEl.textContent = "— empty —";
-      return;
-    }
-
-    inventory.forEach(item => {
-      const cardData = cardPool.find(c => c.id === item.id);
-      if (!cardData) return;
-
-      const div = document.createElement("div");
-      div.classList.add("card", cardData.rarity);
-      div.textContent =
-        `${item.count}x ${cardData.rarity.toUpperCase()} (+${cardData.cdps} dps) = +${cardData.cdps * item.count}`;
-      inventoryEl.appendChild(div);
-    });
+  if (inventory.length === 0) {
+    inventoryEl.textContent = "— empty —";
+    return;
   }
+
+  inventory.forEach(item => {
+    const cardData = cardPool.find(c => c.id === item.id);
+    if (!cardData) return;
+
+    const div = document.createElement("div");
+    div.classList.add("card", cardData.rarity);
+
+    div.textContent =
+      `${item.count}x ${cardData.name} (+${cardData.cdps} dps) = +${cardData.cdps * item.count}`;
+
+    inventoryEl.appendChild(div);
+  });
+}
 
   // ==========================
   // LOOT
