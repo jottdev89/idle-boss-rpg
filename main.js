@@ -29,7 +29,6 @@
 // cards
   const cardPool = [
   { id: 1, name: "stick", cdps: 1, chance: 1, rarity: "common" },
-    { id: 5, name: "stickT2", cdps: 10, chance: 1, rarity: "commonnew" },
   { id: 2, name: "sword", cdps: 5, chance: 0.7, rarity: "rare" },
   { id: 3, name: "gun", cdps: 10, chance: 0.4, rarity: "epic" },
 
@@ -37,7 +36,7 @@
   { id: 4, name: "Ancient Blade", cdps: 100, chance: 1, rarity: "legendary", minStage: 25 },
 
   // Event Drop
-  { id: 100, name: "v0.0.1 Alpha Sword", cdps: 500, chance: 0.001, rarity: "eventdrop", specialStage: [20, 25] }
+  { id: 100, name: "v0.0.1 Alpha Sword", cdps: 500, chance: 0.001, rarity: "eventdrop", specialStage: [20] }
 ];
 // everything for dev mode
   versionEl.addEventListener("click", () => {
