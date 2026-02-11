@@ -15,6 +15,15 @@ document.addEventListener("DOMContentLoaded", function() {
   const resetCheckbox = document.getElementById("enable-reset");
   const versionEl = document.getElementById("version");
   
+  const panel = document.getElementById("control-panel");
+const header = document.getElementById("control-header");
+const toggleBtn = document.getElementById("control-toggle");
+
+header.addEventListener("click", () => {
+  panel.classList.toggle("collapsed");
+  toggleBtn.textContent = panel.classList.contains("collapsed") ? "+" : "–";
+});
+  
   // ==========================
 // STAGE NAVIGATION
 // ==========================
@@ -202,10 +211,10 @@ function createDevOverlay() {
   // CARDS
   // ==========================
   const cardPool = [
-    { id: 0.8, name: "stick", cdps: 4, chance: 1, rarity: "common" },
-    { id: 2, name: "sword", cdps: 20, chance: 0.7, rarity: "rare" },
-    { id: 3, name: "gun", cdps: 50, chance: 0.4, rarity: "epic"},
-    { id: 4, name: "twin blade", cdps: 100, chance: 0.15, rarity: "legendary", minStage: 25 },
+    { id: 1, name: "stick", cdps: 4, chance: 0.8, rarity: "common" },
+    { id: 2, name: "sword", cdps: 20, chance: 0.55, rarity: "rare" },
+    { id: 3, name: "gun", cdps: 50, chance: 0.25, rarity: "epic"},
+    { id: 4, name: "twin blade", cdps: 100, chance: 0.1, rarity: "legendary", minStage: 25 },
     { id: 100, name: "v0.0.1 alpha sword", cdps: 500, chance: 0.01, rarity: "eventdrop", specialStage: [10, 20, 30, 40, 50] }
   ];
 
@@ -322,7 +331,7 @@ function createDevOverlay() {
 
     lootPreviewEl.innerHTML = `
       <b>loot available:</b>
-      <span id="drop-info-btn" style="cursor:pointer;margin-left:6px;">❗</span>
+      <span id="drop-info-btn" style="cursor:pointer;margin-left:6px;">loot chances:❗</span>
       <br>
     `;
 
@@ -335,7 +344,7 @@ function createDevOverlay() {
 
       const div = document.createElement("div");
       div.classList.add("card", card.rarity);
-      div.textContent = `${card.rarity.toUpperCase()} (+${card.cdps} dps)`;
+      div.textContent = `${card.name} (+${card.cdps} dps)`;
 
       lootPreviewEl.appendChild(div);
       any = true;
@@ -443,6 +452,8 @@ function createDevOverlay() {
     updateBossUI();
     renderLootPreview();
     renderBossLootList();
+    stagePrev.disabled = stage <= 1;
+    stageNext.disabled = stage >= maxStageReached;
   }
 
   function updateBossUI() {

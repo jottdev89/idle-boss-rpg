@@ -16,22 +16,38 @@
   </div>
   <div id="boss-hp-text"></div>
   <div id="loot-preview" class="container"></div>
-</div>
-
 <div class="container">inventory <div class="container">dps: <span id="dpstext">1</span></div>
 <div id="inventory"></div>
 </div>
-</div>
-  <div id="stage-select" class="container">
-  Boss #
-  <button id="stage-prev" class="changebtn">-</button>
-  <button id="stage-next" class="changebtn">+</button> repeat boss
-  <input type="checkbox" id="enable-reset" checked></input>
 </div>
 <div class="container">loot available:
   <div id="boss-loot-list"></div>
 </div>
 <span id="version">alpha v0.0.1</span>
+
+<div id="control-panel">
+
+  <div id="control-header">
+    <span>Boss controls</span>
+    <button id="control-toggle">–</button>
+  </div>
+
+  <div id="control-content">
+
+    <div class="stage-wrapper">
+      <button id="stage-prev" class="stage-btn">◀</button>
+      <button id="stage-next" class="stage-btn">▶</button>
+    </div>
+
+    <label class="repeat-container">
+      <input type="checkbox" id="enable-reset">
+      <span class="repeat-checkmark"></span>
+      Repeat Boss
+    </label>
+
+  </div>
+</div>
+
 <script src="main.js"></script>
 </body>
 </html>
