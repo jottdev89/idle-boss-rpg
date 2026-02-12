@@ -28,19 +28,21 @@ header.addEventListener("click", () => {
 // STAGE NAVIGATION
 // ==========================
 
-stagePrev.addEventListener("click", () => {
-  if (stage > 1) {
-    stage--;
+stagePrev.onclick = () => {
+  const next = getNextAvailableStage(-1);
+  if (next !== null) {
+    stage = next;
     spawnBoss();
   }
-});
+};
 
-stageNext.addEventListener("click", () => {
-  if (stage < maxStageReached) {
-    stage++;
+stageNext.onclick = () => {
+  const next = getNextAvailableStage(1);
+  if (next !== null) {
+    stage = next;
     spawnBoss();
   }
-});
+};
 
   // ==========================
   // GAME STATE
@@ -211,11 +213,11 @@ function createDevOverlay() {
   // CARDS
   // ==========================
   const cardPool = [
-    { id: 1, name: "stick", cdps: 4, chance: 0.8, rarity: "common" },
-    { id: 2, name: "sword", cdps: 20, chance: 0.55, rarity: "rare" },
-    { id: 3, name: "gun", cdps: 50, chance: 0.25, rarity: "epic"},
-    { id: 4, name: "twin blade", cdps: 100, chance: 0.1, rarity: "legendary", minStage: 25 },
-    { id: 100, name: "v0.0.1 alpha sword", cdps: 500, chance: 0.01, rarity: "eventdrop", specialStage: [10, 20, 30, 40, 50] }
+    { id: 1, name: "stick", cdps: 1, chance: 0.8, rarity: "common" },
+    { id: 2, name: "sword", cdps: 5, chance: 0.55, rarity: "rare", minStage: 10 },
+    { id: 3, name: "gun", cdps: 20, chance: 0.25, rarity: "epic", minStage: 20},
+    { id: 4, name: "twin blade", cdps: 50, chance: 0.1, rarity: "legendary", minStage: 30 },
+    { id: 100, name: "v0.0.1 alpha sword", cdps: 150, chance: 0.01, rarity: "eventdrop", specialStage: [10, 20, 30, 40, 50] }
   ];
 
   // ==========================
@@ -258,6 +260,39 @@ function createDevOverlay() {
 
     return true;
   }
+  
+  function isBossFullyLooted(stageNumber) {
+
+  const loot = bossLooted[stageNumber] || {};
+
+  const availableCards = cardPool.filter(c =>
+    isCardAvailableForStage(c, stageNumber)
+  );
+
+  if (availableCards.length === 0) return false;
+
+  return availableCards.every(card =>
+    loot[card.rarity]
+  );
+}
+
+function getNextAvailableStage(direction) {
+  let newStage = stage;
+
+  while (true) {
+    newStage += direction;
+
+    // Grenzen prüfen
+    if (newStage < 1 || newStage > maxStageReached) {
+      return null; // KEIN anderer Boss gefunden
+    }
+
+    // Nur Boss nehmen, der noch lootbaren Content hat
+    if (!isBossFullyLooted(newStage)) {
+      return newStage;
+    }
+  }
+}
 
   // ==========================
   // INVENTORY
@@ -439,6 +474,9 @@ function createDevOverlay() {
 }
 
   function spawnBoss() {
+    if (isBossFullyLooted(stage)) {
+  stage = getNextAvailableStage(1);
+}
 
     if (stage < 20) {
       bossMaxHp = Math.floor(13 * Math.pow(1.25, stage - 1));
@@ -479,11 +517,7 @@ function createDevOverlay() {
 
       if (availableCards.length === 0) continue;
 
-      const hasMissing = availableCards.some(card =>
-        !loot[card.rarity]
-      );
-
-      if (!hasMissing) continue;
+      if (isBossFullyLooted(i)) continue;
 
       const row = document.createElement("div");
       row.textContent = `Boss ${i}: `;
@@ -532,32 +566,40 @@ function createDevOverlay() {
   // SAVE / LOAD
   // ==========================
   function saveGame() {
-    localStorage.setItem("idleGameSave", JSON.stringify({
-      stage,
-      bossHp,
-      bossMaxHp,
-      inventory,
-      bossLooted,
-      maxStageReached
-    }));
-  }
+  localStorage.setItem("idleGameSave", JSON.stringify({
+    saveVersion: 2, // neue Version
+    stage,
+    bossHp,
+    bossMaxHp,
+    inventory,
+    bossLooted,
+    maxStageReached
+  }));
+}
 
   function loadGame() {
-    const raw = localStorage.getItem("idleGameSave");
-    if (!raw) return;
+  const raw = localStorage.getItem("idleGameSave");
+  if (!raw) return;
 
-    const data = JSON.parse(raw);
+  const data = JSON.parse(raw);
 
-    stage = data.stage ?? stage;
-    bossHp = data.bossHp ?? bossHp;
-    bossMaxHp = data.bossMaxHp ?? bossMaxHp;
-    inventory = data.inventory ?? [];
-    bossLooted = data.bossLooted ?? {};
-    maxStageReached = data.maxStageReached ?? stage;
-
-    updateDps();
-    renderInventory();
+  // Check Save-Version
+  const saveVersion = data.saveVersion ?? 1; // alte saves default 1
+  if (saveVersion < 2) {
+    localStorage.removeItem("idleGameSave");
+    return;
   }
+
+  stage = data.stage ?? stage;
+  bossHp = data.bossHp ?? bossHp;
+  bossMaxHp = data.bossMaxHp ?? bossMaxHp;
+  inventory = data.inventory ?? [];
+  bossLooted = data.bossLooted ?? {};
+  maxStageReached = data.maxStageReached ?? stage;
+
+  updateDps();
+  renderInventory();
+}
 
   // ==========================
   // START
