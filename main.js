@@ -14,10 +14,9 @@ document.addEventListener("DOMContentLoaded", function() {
   const stageNext = document.getElementById("stage-next");
   const resetCheckbox = document.getElementById("enable-reset");
   const versionEl = document.getElementById("version");
-  
   const panel = document.getElementById("control-panel");
-const header = document.getElementById("control-header");
-const toggleBtn = document.getElementById("control-toggle");
+  const toggleBtn = document.getElementById("control-toggle");
+  const header = document.getElementById("control-header");
 
 header.addEventListener("click", () => {
   panel.classList.toggle("collapsed");
@@ -48,7 +47,7 @@ stageNext.onclick = () => {
   // GAME STATE
   // ==========================
   let stage = 1;
-  let bossMaxHp = 13;
+  let bossMaxHp = 0;
   let bossHp = bossMaxHp;
 
   let baseDps = 1;
@@ -213,11 +212,11 @@ function createDevOverlay() {
   // CARDS
   // ==========================
   const cardPool = [
-    { id: 1, name: "stick", cdps: 1, chance: 0.8, rarity: "common" },
-    { id: 2, name: "sword", cdps: 5, chance: 0.55, rarity: "rare", minStage: 10 },
-    { id: 3, name: "gun", cdps: 20, chance: 0.25, rarity: "epic", minStage: 20},
-    { id: 4, name: "twin blade", cdps: 50, chance: 0.1, rarity: "legendary", minStage: 30 },
-    { id: 100, name: "v0.0.1 alpha sword", cdps: 150, chance: 0.01, rarity: "eventdrop", specialStage: [10, 20, 30, 40, 50] }
+    { id: 1, name: "stick", cdps: 1, chance: 1, rarity: "common" },
+    { id: 2, name: "sword", cdps: 5, chance: 0.60, rarity: "rare", minStage: 10 },
+    { id: 3, name: "gun", cdps: 20, chance: 0.30, rarity: "epic", minStage: 20},
+    { id: 4, name: "twin blade", cdps: 100, chance: 0.1, rarity: "legendary", minStage: 30 },
+    { id: 100, name: "v0.0.1 alpha sword", cdps: 1000, chance: 0.025, rarity: "eventdrop", specialStage: [30, 40, 50, 60, 70, 80, 90, 100] }
   ];
 
   // ==========================
@@ -366,7 +365,7 @@ function getNextAvailableStage(direction) {
 
     lootPreviewEl.innerHTML = `
       <b>loot available:</b>
-      <span id="drop-info-btn" style="cursor:pointer;margin-left:6px;">loot chances:❗</span>
+      <button id="drop-info-btn" style="cursor:pointer;margin-left:6px;border: 2px solid red">loot chances</button>
       <br>
     `;
 
@@ -479,10 +478,38 @@ function getNextAvailableStage(direction) {
 }
 
     if (stage < 20) {
-      bossMaxHp = Math.floor(13 * Math.pow(1.25, stage - 1));
-    } else {
-      bossMaxHp = Math.floor(13 * Math.pow(1.25, 19) * Math.pow(1.23, stage - 19));
-    }
+  // Phase 1 (1–19)
+  bossMaxHp = Math.floor(
+    10 * Math.pow(1.25, stage - 1)
+  );
+
+} else if (stage < 40) {
+  // Phase 2 (20–39)
+  bossMaxHp = Math.floor(
+    10 *
+    Math.pow(1.25, 19) *
+    Math.pow(1.12, stage - 19)
+  );
+
+} else if (stage < 60) {
+  // Phase 3 (40–59)
+  bossMaxHp = Math.floor(
+    10 *
+    Math.pow(1.25, 19) *
+    Math.pow(1.12, 20) *
+    Math.pow(1.10, stage - 39)
+  );
+
+} else {
+  // Phase 4 (60+)
+  bossMaxHp = Math.floor(
+    10 *
+    Math.pow(1.25, 19) *
+    Math.pow(1.12, 20) *
+    Math.pow(1.10, 20) *
+    Math.pow(1.05, stage - 59)
+  );
+}
 
     bossHp = bossMaxHp;
     bossName.textContent = `Boss #${stage}`;
@@ -492,6 +519,7 @@ function getNextAvailableStage(direction) {
     renderBossLootList();
     stagePrev.disabled = stage <= 1;
     stageNext.disabled = stage >= maxStageReached;
+    console.log(stage, bossMaxHp);
   }
 
   function updateBossUI() {
@@ -567,7 +595,7 @@ function getNextAvailableStage(direction) {
   // ==========================
   function saveGame() {
   localStorage.setItem("idleGameSave", JSON.stringify({
-    saveVersion: 2, // neue Version
+    saveVersion: 1, // neue Version
     stage,
     bossHp,
     bossMaxHp,
@@ -585,7 +613,7 @@ function getNextAvailableStage(direction) {
 
   // Check Save-Version
   const saveVersion = data.saveVersion ?? 1; // alte saves default 1
-  if (saveVersion < 2) {
+  if (saveVersion > 1) {
     localStorage.removeItem("idleGameSave");
     return;
   }
