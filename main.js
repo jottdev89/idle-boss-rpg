@@ -638,4 +638,58 @@ function getNextAvailableStage(direction) {
   idleLoop();
 
   setInterval(saveGame, 5000);
+  // ==========================
+// CHAT SYSTEM
+// ==========================
+
+// Firebase konfigurieren
+const firebaseConfig = {
+  apiKey: "AIzaSyABR3Qxqt09SXKqmocoOHcD5kKdmKlrgLg",
+  authDomain: "idle-boss-rpg.firebaseapp.com",
+  projectId: "idle-boss-rpg",
+  storageBucket: "idle-boss-rpg.firebasestorage.app",
+  messagingSenderId: "323344300513",
+  appId: "1:323344300513:web:16b7b9e7646eb6d9b3faa0"
+};
+
+// Firebase initialisieren
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// DOM Elemente
+const chatInput = document.getElementById("chat-input");
+const chatSend = document.getElementById("chat-send");
+const chatMessages = document.getElementById("chat-messages");
+
+// Spieler-ID zufällig (für Demo, kann später Auth ersetzen)
+const playerId = "player_" + Math.floor(Math.random() * 100000);
+
+// Nachricht senden
+chatSend.addEventListener("click", () => {
+  const text = chatInput.value.trim();
+  if (text === "") return;
+
+  const messageData = {
+    player: playerId,
+    text: text,
+    timestamp: Date.now()
+  };
+
+  db.ref("chat").push(messageData);
+  chatInput.value = "";
+});
+
+// Enter-Taste senden
+chatInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") chatSend.click();
+});
+
+// Chat-Listener: Nachrichten live anzeigen
+db.ref("chat").limitToLast(50).on("child_added", snapshot => {
+  const msg = snapshot.val();
+  const div = document.createElement("div");
+  div.textContent = `${msg.player}: ${msg.text}`;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
 });
