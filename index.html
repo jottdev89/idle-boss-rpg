@@ -1,66 +1,96 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>idle boss rpg</title>
+<title>Idle Boss RPG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 </head>
 <body>
 
-<!-- BOSS & GAME UI -->
-<div id="boss" class="container">
-  <div class="bar">
-    <div id="boss-name">Boss # 1</div>
-    <div id="boss-hp-fill" class="fill"></div>
-  </div>
-  <div id="boss-hp-text"></div>
-  <div id="loot-preview" class="container"></div>
-  <div class="container">
-    <div class="container">dps: <span id="dpstext">1</span></div>
+<div id="ambient-bg">
+  <div class="ember" style="--x:10%;--delay:0s;--dur:6s"></div>
+  <div class="ember" style="--x:25%;--delay:1.5s;--dur:8s"></div>
+  <div class="ember" style="--x:45%;--delay:3s;--dur:5s"></div>
+  <div class="ember" style="--x:65%;--delay:0.5s;--dur:9s"></div>
+  <div class="ember" style="--x:80%;--delay:2s;--dur:7s"></div>
+  <div class="ember" style="--x:90%;--delay:4s;--dur:6s"></div>
+</div>
+
+<div id="tab-bar">
+  <a href="index.html" class="tab-link active">⚔ Solo</a>
+  <a href="worldboss.html" class="tab-link wb-tab">☠ World Boss</a>
+</div>
+
+<div id="game-wrap">
+
+  <section id="boss-arena">
+    <div class="arena-glow"></div>
+    <div id="boss-header">
+      <div class="skull-deco">☠</div>
+      <h1 id="boss-name">Boss #1</h1>
+      <div class="skull-deco">☠</div>
+    </div>
+    <div id="hp-section">
+      <div id="hp-bar-wrap">
+        <div id="boss-hp-fill" class="fill"></div>
+        <div id="hp-bar-shine"></div>
+      </div>
+      <div id="boss-hp-text"></div>
+    </div>
+    <div id="dps-badge">
+      ⚔ <span id="dpstext">1</span> <span class="dps-label">DPS</span>
+    </div>
+  </section>
+
+  <section id="loot-section" class="panel">
+    <div class="panel-title">
+      <span class="rune">᛫</span> Available Loot <span class="rune">᛫</span>
+      <button id="drop-info-btn" class="chance-btn">Drop Chances</button>
+    </div>
+    <div id="loot-preview"></div>
+  </section>
+
+  <section id="inventory-section" class="panel">
+    <div class="panel-title"><span class="rune">᛫</span> Inventory <span class="rune">᛫</span></div>
     <div id="inventory"></div>
-  </div>
+  </section>
+
+  <section id="loot-list-section" class="panel">
+    <div class="panel-title"><span class="rune">᛫</span> Pending Boss Loot <span class="rune">᛫</span></div>
+    <div id="boss-loot-list"></div>
+  </section>
+
 </div>
 
-<div class="container">
-  loot available:
-  <div id="boss-loot-list"></div>
-</div>
-
-<span id="version">alpha v0.0.1</span>
-
-<!-- CONTROL PANEL -->
 <div id="control-panel">
   <div id="control-header">
-    <span>Boss controls</span>
-    <button id="control-toggle">–</button>
+    <div id="panel-title-row">
+      <span class="panel-icon">⚙</span>
+      <span>Combat Controls</span>
+    </div>
+    <button id="control-toggle">▲</button>
   </div>
   <div id="control-content">
     <div class="stage-wrapper">
-      <button id="stage-prev" class="stage-btn">◀</button>
-      <button id="stage-next" class="stage-btn">▶</button>
+      <button id="stage-prev" class="stage-btn"><span>◀</span> Previous</button>
+      <div id="stage-indicator">STAGE <span id="stage-num">1</span></div>
+      <button id="stage-next" class="stage-btn">Next <span>▶</span></button>
     </div>
-    <label class="repeat-container">
-      <input type="checkbox" id="enable-reset">
-      <span class="repeat-checkmark"></span>
-      Repeat Boss
-    </label>
+    <div class="control-bottom">
+      <label class="repeat-container">
+        <input type="checkbox" id="enable-reset">
+        <span class="repeat-checkmark"></span>
+        <span>Repeat Boss</span>
+      </label>
+      <button id="prestige-btn" class="prestige-btn">✦ Prestige ✦</button>
+    </div>
   </div>
 </div>
 
-<!-- CHAT -->
-<div id="chat-container" class="container">
-  <div id="chat-messages" style="height:150px; overflow-y:auto; border:1px solid #888; padding:4px; background:#111; color:#fff; margin-bottom:4px;"></div>
-  <input type="text" id="chat-input" placeholder="Schreibe eine Nachricht..." style="width:70%; padding:4px;">
-  <button id="chat-send" style="width:25%; padding:4px;">Senden</button>
-</div>
-
-<!-- MAIN SCRIPT -->
+<span id="version">α v0.0.1</span>
 <script src="main.js"></script>
 </body>
 </html>

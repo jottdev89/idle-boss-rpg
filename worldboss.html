@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Boss — Idle Boss RPG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="ambient-bg">
+  <div class="ember" style="--x:10%;--delay:0s;--dur:4s"></div>
+  <div class="ember" style="--x:20%;--delay:0.8s;--dur:6s"></div>
+  <div class="ember" style="--x:35%;--delay:2s;--dur:5s"></div>
+  <div class="ember" style="--x:55%;--delay:0.3s;--dur:7s"></div>
+  <div class="ember" style="--x:70%;--delay:1.5s;--dur:4s"></div>
+  <div class="ember" style="--x:85%;--delay:3s;--dur:6s"></div>
+  <div class="ember" style="--x:95%;--delay:1s;--dur:5s"></div>
+</div>
+
+<div id="tab-bar">
+  <a href="index.html" class="tab-link">⚔ Solo</a>
+  <a href="worldboss.html" class="tab-link wb-tab active">☠ World Boss</a>
+</div>
+
+<div id="wb-wrap">
+
+  <!-- ── LOGIN SCREEN (shown when not logged in) ── -->
+  <section id="wb-login-screen" class="panel" style="text-align:center;padding:30px 16px;">
+    <div style="font-family:'Cinzel Decorative',serif;font-size:16px;color:#c9973a;margin-bottom:8px;">World Boss</div>
+    <div style="font-family:'Crimson Text',serif;font-size:15px;color:#7a6e5a;margin-bottom:24px;line-height:1.6;">
+      Sign in with Google to join the battle<br>and compete on the global leaderboard.
+    </div>
+    <button id="wb-google-login" class="prestige-btn" style="width:100%;font-size:14px;padding:12px;">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+           style="width:18px;vertical-align:middle;margin-right:8px;">
+      Sign in with Google
+    </button>
+    <div id="wb-login-status" style="margin-top:12px;font-family:'Cinzel',serif;font-size:11px;color:#4a3a60;letter-spacing:1px;"></div>
+  </section>
+
+  <!-- ── GAME SCREEN (shown when logged in) ── -->
+  <div id="wb-game-screen" style="display:none;flex-direction:column;gap:8px;">
+
+    <!-- Player info bar -->
+    <div id="wb-player-bar" class="panel" style="display:flex;align-items:center;gap:10px;padding:8px 14px;">
+      <img id="wb-avatar" src="" alt="" style="width:32px;height:32px;border-radius:50%;border:1px solid #3a2040;display:none;">
+      <div style="flex:1;">
+        <div id="wb-display-name" style="font-family:'Cinzel',serif;font-size:13px;color:#c9973a;letter-spacing:1px;"></div>
+        <div id="wb-player-email" style="font-family:'Crimson Text',serif;font-size:11px;color:#4a3a60;"></div>
+      </div>
+      <button id="wb-logout-btn" style="
+        background:transparent;border:1px solid #2a2030;color:#4a3a60;
+        font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;
+        padding:4px 10px;border-radius:6px;cursor:pointer;transition:all 0.2s;">
+        Logout
+      </button>
+    </div>
+
+    <!-- Boss Arena -->
+    <section id="wb-arena">
+      <div class="arena-glow"></div>
+      <div id="wb-boss-header">
+        <div class="skull-deco">☠</div>
+        <h1 id="wb-boss-name">MALACHAR</h1>
+        <div class="skull-deco">☠</div>
+      </div>
+      <div id="wb-event-label">⚔ WORLD BOSS ⚔</div>
+      <div id="wb-hp-bar-wrap">
+        <div id="wb-hp-fill"></div>
+      </div>
+      <div id="wb-hp-text">— / —</div>
+      <div id="wb-dps-badge">
+        ⚔ <span id="wb-dpstext">0</span> <span class="dps-label">DPS</span>
+      </div>
+      <div id="wb-my-dmg">Your damage: <span id="wb-my-dmg-val">0</span></div>
+      <div id="wb-status"></div>
+    </section>
+
+    <!-- Ranking -->
+    <section id="wb-ranking-section">
+      <div id="wb-ranking-title">
+        <span class="rune">᛫</span> Damage Ranking <span class="rune">᛫</span>
+        <span id="wb-reset-timer" style="margin-left:auto;font-size:10px;color:#4a3a60;letter-spacing:1px;"></span>
+      </div>
+      <div id="wb-leaderboard"></div>
+    </section>
+
+  </div>
+</div>
+
+<span id="version">α v0.0.1</span>
+
+<!-- Firebase SDKs (compat version — easy to use) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script src="firebase-config.js"></script>
+<script src="worldboss.js"></script>
+</body>
+</html>

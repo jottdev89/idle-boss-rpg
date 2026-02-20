@@ -1,0 +1,325 @@
+// ============================================================
+// WORLD BOSS — worldboss.js
+// Firebase Realtime Database + Google Auth
+// Structure:
+//   /worldboss/cycle          → { startTime: timestamp }
+//   /worldboss/damage/{uid}   → { name, photoURL, dmg, updatedAt }
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  // ── CONFIG ───────────────────────────────────────────────
+  const WB_MAX_HP    = 10_000_000;
+  const WB_RESET_H   = 24;                          // boss resets every 24 hours
+  const WB_RESET_MS  = WB_RESET_H * 60 * 60 * 1000;
+  const TICK_MS      = 250;
+  const WRITE_MS     = 3000;                        // write damage to Firebase every 3s
+
+  // ── DOM ──────────────────────────────────────────────────
+  const loginScreen   = document.getElementById("wb-login-screen");
+  const gameScreen    = document.getElementById("wb-game-screen");
+  const loginBtn      = document.getElementById("wb-google-login");
+  const loginStatus   = document.getElementById("wb-login-status");
+  const logoutBtn     = document.getElementById("wb-logout-btn");
+  const avatarImg     = document.getElementById("wb-avatar");
+  const displayName   = document.getElementById("wb-display-name");
+  const playerEmail   = document.getElementById("wb-player-email");
+  const hpFill        = document.getElementById("wb-hp-fill");
+  const hpText        = document.getElementById("wb-hp-text");
+  const dpsText       = document.getElementById("wb-dpstext");
+  const myDmgVal      = document.getElementById("wb-my-dmg-val");
+  const statusEl      = document.getElementById("wb-status");
+  const leaderboardEl = document.getElementById("wb-leaderboard");
+  const resetTimer    = document.getElementById("wb-reset-timer");
+
+  // ── FIREBASE INIT ────────────────────────────────────────
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const db   = firebase.database();
+
+  // ── PLAYER STATE ─────────────────────────────────────────
+  let currentUser  = null;
+  let myDamage     = 0;
+  let myDps        = 1;
+  let bossHp       = WB_MAX_HP;
+  let defeated     = false;
+  let lastTick     = Date.now();
+  let lastWrite    = 0;
+  let cycleStart   = null;
+  let tickTimer    = null;
+  let lbListener  = null;
+
+  // ── GOOGLE LOGIN ─────────────────────────────────────────
+  loginBtn.addEventListener("click", async () => {
+    loginStatus.textContent = "Signing in…";
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+    } catch (err) {
+      loginStatus.textContent = "Login failed: " + err.message;
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    auth.signOut();
+  });
+
+  // ── AUTH STATE CHANGE ────────────────────────────────────
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      showGameScreen(user);
+      startGame();
+    } else {
+      currentUser = null;
+      showLoginScreen();
+      stopGame();
+    }
+  });
+
+  function showLoginScreen() {
+    loginScreen.style.display = "block";
+    gameScreen.style.display  = "none";
+  }
+
+  function showGameScreen(user) {
+    loginScreen.style.display = "none";
+    gameScreen.style.display  = "flex";
+
+    displayName.textContent   = user.displayName || "Warrior";
+    playerEmail.textContent   = user.email || "";
+
+    if (user.photoURL) {
+      avatarImg.src           = user.photoURL;
+      avatarImg.style.display = "block";
+    }
+  }
+
+  // ── LOAD DPS FROM SOLO SAVE ──────────────────────────────
+  function loadSoloDps() {
+    try {
+      const raw = localStorage.getItem("idleGameSave");
+      if (!raw) return 1;
+      const data = JSON.parse(raw);
+
+      const cardPool = [
+        { id: 1,   cdps: 1    },
+        { id: 2,   cdps: 5    },
+        { id: 3,   cdps: 20   },
+        { id: 4,   cdps: 100  },
+        { id: 100, cdps: 1000 }
+      ];
+
+      const cardDps = (data.inventory || []).reduce((total, item) => {
+        const card = cardPool.find(c => c.id === item.id);
+        return card ? total + card.cdps * item.count : total;
+      }, 0);
+
+      const prestige = 1 + ((data.soulShards || 0) * 0.10);
+      return Math.max(1, (1 + cardDps) * prestige);
+    } catch { return 1; }
+  }
+
+  // ── BOSS CYCLE (Firebase) ────────────────────────────────
+  async function initCycle() {
+    const cycleRef = db.ref("worldboss/cycle");
+    const snap     = await cycleRef.once("value");
+    const data     = snap.val();
+
+    const now = Date.now();
+
+    if (!data || !data.startTime || (now - data.startTime) >= WB_RESET_MS) {
+      // New cycle — reset everything
+      cycleStart = now;
+      await cycleRef.set({ startTime: now });
+
+      // Reset this player's damage for the new cycle
+      await db.ref(`worldboss/damage/${currentUser.uid}`).set({
+        name:      currentUser.displayName || "Warrior",
+        photoURL:  currentUser.photoURL || "",
+        dmg:       0,
+        updatedAt: now
+      });
+      myDamage = 0;
+
+    } else {
+      cycleStart = data.startTime;
+
+      // Load existing damage for this player
+      const mySnap = await db.ref(`worldboss/damage/${currentUser.uid}`).once("value");
+      const myData = mySnap.val();
+      myDamage = myData ? (myData.dmg || 0) : 0;
+    }
+
+    bossHp = Math.max(0, WB_MAX_HP - myDamage);
+    updateHpUI();
+  }
+
+  // ── WRITE DAMAGE ─────────────────────────────────────────
+  async function writeDamage() {
+    const now = Date.now();
+    if (now - lastWrite < WRITE_MS || !currentUser) return;
+    lastWrite = now;
+
+    try {
+      await db.ref(`worldboss/damage/${currentUser.uid}`).set({
+        name:      currentUser.displayName || "Warrior",
+        photoURL:  currentUser.photoURL || "",
+        dmg:       Math.floor(myDamage),
+        updatedAt: now
+      });
+    } catch (e) {
+      console.warn("Firebase write failed:", e);
+    }
+  }
+
+  // ── LIVE LEADERBOARD ─────────────────────────────────────
+  function subscribeLeaderboard() {
+    // Unsubscribe previous listener if any
+    if (lbListener) {
+      db.ref("worldboss/damage").off("value", lbListener);
+    }
+
+    lbListener = db.ref("worldboss/damage").on("value", snap => {
+      const data = snap.val();
+      if (!data) {
+        renderLeaderboard([]);
+        return;
+      }
+
+      const entries = Object.entries(data)
+        .map(([uid, v]) => ({ uid, name: v.name || "Unknown", dmg: v.dmg || 0, photoURL: v.photoURL || "" }))
+        .sort((a, b) => b.dmg - a.dmg);
+
+      renderLeaderboard(entries);
+    });
+  }
+
+  // ── RENDER LEADERBOARD ───────────────────────────────────
+  const RANK_ICONS = ["🥇", "🥈", "🥉"];
+
+  function formatDmg(n) {
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + "M";
+    if (n >= 1_000)     return (n / 1_000).toFixed(1) + "K";
+    return Math.floor(n).toString();
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c =>
+      ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])
+    );
+  }
+
+  function renderLeaderboard(entries) {
+    leaderboardEl.innerHTML = "";
+
+    if (entries.length === 0) {
+      leaderboardEl.innerHTML = `<div class="empty-state">— Be the first to fight! —</div>`;
+      return;
+    }
+
+    entries.forEach((entry, i) => {
+      const isMe = currentUser && entry.uid === currentUser.uid;
+      const row  = document.createElement("div");
+      row.className = `lb-row${i < 3 ? " rank-" + (i + 1) : ""}${isMe ? " is-me" : ""}`;
+
+      const icon = RANK_ICONS[i] || `<span style="color:#4a3a60;font-size:11px;">#${i + 1}</span>`;
+
+      row.innerHTML = `
+        <div class="lb-rank">${icon}</div>
+        <div class="lb-name${isMe ? " is-me" : ""}">${escapeHtml(entry.name)}${isMe ? " 👤" : ""}</div>
+        <div class="lb-dmg${isMe ? " is-me" : ""}">${formatDmg(entry.dmg)}</div>
+      `;
+      leaderboardEl.appendChild(row);
+    });
+  }
+
+  // ── HP UI ─────────────────────────────────────────────────
+  function updateHpUI() {
+    const pct = Math.max(0, (bossHp / WB_MAX_HP) * 100);
+    hpFill.style.width = pct + "%";
+    hpText.textContent = `${formatDmg(Math.ceil(bossHp))} / ${formatDmg(WB_MAX_HP)}`;
+  }
+
+  // ── RESET TIMER DISPLAY ───────────────────────────────────
+  function updateResetTimer() {
+    if (!cycleStart) return;
+    const remaining = Math.max(0, WB_RESET_MS - (Date.now() - cycleStart));
+    const h = Math.floor(remaining / 3600000);
+    const m = Math.floor((remaining % 3600000) / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+    resetTimer.textContent = `RESETS IN ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  }
+
+  // ── GAME LOOP ─────────────────────────────────────────────
+  function tick() {
+    if (defeated || !currentUser) return;
+
+    const now   = Date.now();
+    const delta = (now - lastTick) / 1000;
+    lastTick    = now;
+
+    myDps = loadSoloDps();
+    const dmgThisTick = myDps * delta;
+
+    myDamage += dmgThisTick;
+    bossHp    = Math.max(0, bossHp - dmgThisTick);
+
+    dpsText.textContent  = myDps.toFixed(1);
+    myDmgVal.textContent = formatDmg(myDamage);
+    updateHpUI();
+    updateResetTimer();
+    writeDamage();
+
+    if (bossHp <= 0) {
+      defeated = true;
+      bossDefeated();
+      return;
+    }
+
+    tickTimer = setTimeout(tick, TICK_MS);
+  }
+
+  function bossDefeated() {
+    statusEl.textContent = "⚔ BOSS SLAIN — Await the next cycle ⚔";
+    statusEl.className   = "defeated";
+    hpFill.style.width   = "0%";
+    hpText.textContent   = "0 / " + formatDmg(WB_MAX_HP);
+
+    // Final damage write
+    lastWrite = 0;
+    writeDamage();
+  }
+
+  // ── START / STOP ──────────────────────────────────────────
+  async function startGame() {
+    defeated  = false;
+    myDamage  = 0;
+    bossHp    = WB_MAX_HP;
+    lastTick  = Date.now();
+    lastWrite = 0;
+
+    await initCycle();
+
+    myDps = loadSoloDps();
+    dpsText.textContent = myDps.toFixed(1);
+
+    subscribeLeaderboard();
+
+    if (bossHp > 0) {
+      tickTimer = setTimeout(tick, TICK_MS);
+    } else {
+      defeated = true;
+      bossDefeated();
+    }
+  }
+
+  function stopGame() {
+    clearTimeout(tickTimer);
+    if (lbListener) {
+      db.ref("worldboss/damage").off("value", lbListener);
+      lbListener = null;
+    }
+  }
+
+});
