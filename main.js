@@ -22,6 +22,46 @@ header.addEventListener("click", () => {
   panel.classList.toggle("collapsed");
   toggleBtn.textContent = panel.classList.contains("collapsed") ? "+" : "–";
 });
+
+const dpsPerShard = 10; // 10% DPS pro Soul Shard
+
+document.getElementById("prestige-btn").onclick = () => {
+
+  if (maxStageReached < 50) {
+    alert("Prestige unlocked at Stage 50");
+    return;
+  }
+
+  const reward = calculatePrestigeReward(); // Soul Shards, unverändert
+  const confirmPrestige = confirm(
+    `Prestige?\n\nYou will gain ${reward} Soul Shards\n(+${reward * dpsPerShard}% DPS permanent)`
+  );
+
+  if (!confirmPrestige) return;
+
+  // Soul Shards hinzufügen
+  soulShards += reward;
+
+  // RESET
+  stage = 1;
+  inventory = [];
+  bossLooted = {};
+  maxStageReached = 1;
+  bonusDps = 0;
+
+  updateDps();
+  renderInventory();
+  spawnBoss();
+  saveGame();
+
+  // Berechnung des Multipliers für Anzeige
+  const multiplier = 1 + (soulShards * dpsPerShard / 100);
+
+  alert(`Prestige successful!
++${reward} Soul Shards
+Total: ${soulShards}
+DPS Multiplier: x${multiplier.toFixed(2)}`);
+};
   
   // ==========================
 // STAGE NAVIGATION
@@ -57,6 +97,8 @@ stageNext.onclick = () => {
   let inventory = [];
   let bossLooted = {};
   let maxStageReached = 1;
+  let soulShards = 0;
+  const SOUL_DPS_BONUS = 0.10; // 10%
 
   let lastTick = Date.now();
   
@@ -199,6 +241,7 @@ function createDevOverlay() {
     inventory = [];
     maxStageReached = 1;
     bonusDps = 0;
+    soulShards = 0;
 
     updateDps();
     renderInventory();
@@ -220,26 +263,60 @@ function createDevOverlay() {
   ];
 
   // ==========================
-  // DPS SYSTEM
-  // ==========================
-  function calculateDps() {
-    const cardDps = inventory.reduce((total, item) => {
-      const cardData = cardPool.find(c => c.id === item.id);
-      if (!cardData) return total;
-      return total + cardData.cdps * item.count;
-    }, 0);
+// DPS SYSTEM
+// ==========================
+function calculateDps() {
+  const cardDps = inventory.reduce((total, item) => {
+    const cardData = cardPool.find(c => c.id === item.id);
+    if (!cardData) return total;
+    return total + cardData.cdps * item.count;
+  }, 0);
 
-    return baseDps + bonusDps + cardDps;
-  }
+  const baseTotal = baseDps + bonusDps + cardDps;
 
-  function updateDps() {
-    dps = calculateDps();
-    dpstext.textContent = dps;
-  }
+  const prestigeMultiplier = 1 + (soulShards * SOUL_DPS_BONUS); // 1% pro Soul Shard
+  return baseTotal * prestigeMultiplier;
+}
+
+function updateDps() {
+  dps = calculateDps();
+  dpstext.textContent = dps.toFixed(1); // Optional: 1 Nachkommastelle
+}
 
   // ==========================
   // UTIL
   // ==========================
+  function calculatePrestigeReward() {
+  if (maxStageReached < 50) return 0;
+  return Math.floor(Math.pow(maxStageReached - 40, 1.2) / 5);
+}
+
+function prestige() {
+
+  const reward = calculatePrestigeReward();
+  if (reward <= 0) return;
+
+  soulShards += reward;
+  // RESET
+  stage = 1;
+  inventory = [];
+  bossLooted = {};
+  maxStageReached = 1;
+  bonusDps = 0;
+
+  updateDps();
+  renderInventory();
+  spawnBoss();
+  saveGame();
+
+  const multiplier = 1 + (soulShards * SOUL_DPS_BONUS);
+
+alert(`Prestige successful!
++${reward} Soul Shards
+Total: ${soulShards}
+DPS Multiplier: x${multiplier.toFixed(2)}`);
+}
+  
   function getAllRarities() {
     return [...new Set(cardPool.map(c => c.rarity))];
   }
@@ -594,18 +671,24 @@ function getNextAvailableStage(direction) {
   // SAVE / LOAD
   // ==========================
   function saveGame() {
-  localStorage.setItem("idleGameSave", JSON.stringify({
-    saveVersion: 1, // neue Version
-    stage,
-    bossHp,
-    bossMaxHp,
-    inventory,
-    bossLooted,
-    maxStageReached
-  }));
+  const saveData = {
+    saveVersion: 1,
+    stage: stage,
+    bossHp: bossHp,
+    bossMaxHp: bossMaxHp,
+    inventory: inventory,
+    bossLooted: bossLooted,
+    maxStageReached: maxStageReached,
+    soulShards: soulShards ?? 0
+  };
+
+  console.log("Saving SoulShards:", soulShards);
+
+  localStorage.setItem("idleGameSave", JSON.stringify(saveData));
 }
 
   function loadGame() {
+    console.log("Loaded SoulShards:",soulShards);
   const raw = localStorage.getItem("idleGameSave");
   if (!raw) return;
 
@@ -624,7 +707,8 @@ function getNextAvailableStage(direction) {
   inventory = data.inventory ?? [];
   bossLooted = data.bossLooted ?? {};
   maxStageReached = data.maxStageReached ?? stage;
-
+  soulShards = data.soulShards ?? 0;
+console.log("SoulShards after load:", soulShards);
   updateDps();
   renderInventory();
 }
@@ -638,58 +722,4 @@ function getNextAvailableStage(direction) {
   idleLoop();
 
   setInterval(saveGame, 5000);
-  // ==========================
-// CHAT SYSTEM
-// ==========================
-
-// Firebase konfigurieren
-const firebaseConfig = {
-  apiKey: "AIzaSyABR3Qxqt09SXKqmocoOHcD5kKdmKlrgLg",
-  authDomain: "idle-boss-rpg.firebaseapp.com",
-  projectId: "idle-boss-rpg",
-  storageBucket: "idle-boss-rpg.firebasestorage.app",
-  messagingSenderId: "323344300513",
-  appId: "1:323344300513:web:16b7b9e7646eb6d9b3faa0"
-};
-
-// Firebase initialisieren
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// DOM Elemente
-const chatInput = document.getElementById("chat-input");
-const chatSend = document.getElementById("chat-send");
-const chatMessages = document.getElementById("chat-messages");
-
-// Spieler-ID zufällig (für Demo, kann später Auth ersetzen)
-const playerId = "player_" + Math.floor(Math.random() * 100000);
-
-// Nachricht senden
-chatSend.addEventListener("click", () => {
-  const text = chatInput.value.trim();
-  if (text === "") return;
-
-  const messageData = {
-    player: playerId,
-    text: text,
-    timestamp: Date.now()
-  };
-
-  db.ref("chat").push(messageData);
-  chatInput.value = "";
-});
-
-// Enter-Taste senden
-chatInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") chatSend.click();
-});
-
-// Chat-Listener: Nachrichten live anzeigen
-db.ref("chat").limitToLast(50).on("child_added", snapshot => {
-  const msg = snapshot.val();
-  const div = document.createElement("div");
-  div.textContent = `${msg.player}: ${msg.text}`;
-  chatMessages.appendChild(div);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-});
 });
