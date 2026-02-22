@@ -838,6 +838,60 @@ body {
 }
 
 /* ============================================================
+   PLAYER BAR (shown on all game pages)
+   ============================================================ */
+#player-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #0e0b14, #0a0810);
+  border-bottom: 1px solid var(--border-dim);
+  font-family: var(--font-title);
+  font-size: 12px;
+  position: sticky;
+  top: 45px;
+  z-index: 400;
+}
+
+#player-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#player-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border-glow);
+  object-fit: cover;
+}
+
+#player-bar-name {
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+#logout-btn {
+  background: transparent;
+  border: 1px solid var(--border-dim);
+  color: var(--text-dim);
+  font-family: var(--font-title);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#logout-btn:hover {
+  border-color: var(--red-glow);
+  color: #ff6060;
+}
+
+/* ============================================================
    TAB BAR
    ============================================================ */
 #tab-bar {
