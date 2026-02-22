@@ -1,167 +1,163 @@
 // ============================================================
 // LOGIN — login.js
-//
-// Google User:
-//   - Erster Login → Name eingeben → in Firebase gespeichert
-//   - Spätere Logins → Name wird aus Firebase geladen
-//   - Name ist permanent an die Google UID gebunden
-//
-// Gast:
-//   - Name eingeben → in localStorage gespeichert
-//   - Stabile Gast-ID im localStorage
 // ============================================================
 
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.database();
 
-// ── DOM ──────────────────────────────────────────────────────
-const nameSection      = document.getElementById("name-section");
-const returningSection = document.getElementById("returning-section");
-const returningNameEl  = document.getElementById("returning-name");
-const nameInput        = document.getElementById("player-name-input");
-const nameError        = document.getElementById("name-error");
-const btnGoogle        = document.getElementById("btn-google");
-const btnGuest         = document.getElementById("btn-guest");
-const statusEl         = document.getElementById("login-status");
+document.addEventListener("DOMContentLoaded", () => {
 
-// ── AUTO-LOGIN: Bereits eingeloggt? ──────────────────────────
-auth.onAuthStateChanged(async user => {
-  if (!user) return;
+  // ── DOM ────────────────────────────────────────────────────
+  const nameSection      = document.getElementById("name-section");
+  const returningSection = document.getElementById("returning-section");
+  const returningNameEl  = document.getElementById("returning-name");
+  const nameInput        = document.getElementById("player-name-input");
+  const nameError        = document.getElementById("name-error");
+  const btnGoogle        = document.getElementById("btn-google");
+  const btnGuest         = document.getElementById("btn-guest");
+  const statusEl         = document.getElementById("login-status");
 
-  // Google User ist noch eingeloggt → Namen aus Firebase laden
-  setStatus("Loading your profile…");
-  btnGoogle.disabled = true;
+  // ── HELPERS ──────────────────────────────────────────────
+  function setStatus(msg) { statusEl.textContent = msg; }
+  function goToGame()     { window.location.href = "index.html"; }
 
-  const existingName = await loadNameFromFirebase(user.uid);
-
-  if (existingName) {
-    // Bekannter Spieler → direkt weiter
-    saveSession(user.uid, existingName, user.photoURL || "", "google");
-    goToGame();
-  } else {
-    // Eingeloggt aber noch kein Name → Eingabe zeigen
-    setStatus("");
-    btnGoogle.disabled = false;
+  function showNameInput() {
+    nameSection.style.display      = "block";
+    returningSection.style.display = "none";
   }
-});
 
-// ── NAME AUS FIREBASE LADEN ───────────────────────────────────
-async function loadNameFromFirebase(uid) {
-  try {
-    const snap = await db.ref(`players/${uid}/name`).once("value");
-    return snap.val() || null;
-  } catch { return null; }
-}
-
-// ── NAME IN FIREBASE SPEICHERN ────────────────────────────────
-async function saveNameToFirebase(uid, name) {
-  try {
-    await db.ref(`players/${uid}`).set({ name, createdAt: Date.now() });
-  } catch(e) {
-    console.warn("Could not save name to Firebase:", e);
+  function showWelcomeBack(name) {
+    nameSection.style.display      = "none";
+    returningSection.style.display = "block";
+    returningNameEl.textContent    = name;
   }
-}
 
-// ── VALIDIERUNG ───────────────────────────────────────────────
-function validateName() {
-  const val = nameInput.value.trim();
-  if (!val) {
-    nameError.textContent = "Please enter a name first.";
-    nameInput.focus();
-    return null;
+  function saveSession(uid, name, photo, authType) {
+    localStorage.setItem("playerUID",   uid);
+    localStorage.setItem("playerName",  name);
+    localStorage.setItem("playerPhoto", photo);
+    localStorage.setItem("authType",    authType);
   }
-  if (val.length < 2) {
-    nameError.textContent = "Name must be at least 2 characters.";
-    nameInput.focus();
-    return null;
+
+  function validateName() {
+    const val = nameInput.value.trim();
+    if (!val)           { nameError.textContent = "Please enter a name first."; nameInput.focus(); return null; }
+    if (val.length < 2) { nameError.textContent = "Name must be at least 2 characters."; nameInput.focus(); return null; }
+    nameError.textContent = "";
+    return val;
   }
-  nameError.textContent = "";
-  return val;
-}
 
-// ── GOOGLE LOGIN ──────────────────────────────────────────────
-btnGoogle.addEventListener("click", async () => {
-  setStatus("Signing in…");
-  btnGoogle.disabled = true;
+  async function loadNameFromFirebase(uid) {
+    try {
+      const snap = await db.ref(`players/${uid}/name`).once("value");
+      return snap.val() || null;
+    } catch { return null; }
+  }
 
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    const result   = await auth.signInWithPopup(provider);
-    const user     = result.user;
+  async function saveNameToFirebase(uid, name) {
+    try {
+      await db.ref(`players/${uid}`).set({ name, createdAt: Date.now() });
+    } catch(e) { console.warn("Could not save name:", e); }
+  }
 
-    // Prüfen ob dieser Spieler schon einen Namen hat
+  // ── SCHRITT 1: Sofort prüfen ob Gast zurückkommt ─────────
+  // Das passiert synchron bevor Firebase antwortet
+  const guestId   = localStorage.getItem("guestId");
+  const guestName = localStorage.getItem("playerName");
+  const authType  = localStorage.getItem("authType");
+
+  if (guestId && guestName && authType === "guest") {
+    showWelcomeBack(guestName);
+  }
+
+  // ── SCHRITT 2: Firebase Auth prüfen (async) ───────────────
+  auth.onAuthStateChanged(async user => {
+    if (!user) return;
+
+    // Google User ist noch eingeloggt
+    setStatus("Loading your profile…");
+    btnGoogle.disabled = true;
+
     const existingName = await loadNameFromFirebase(user.uid);
 
     if (existingName) {
-      // Bekannter Spieler → direkt weiter
+      // Bekannter Spieler → Welcome Back zeigen, direkt weiter
+      showWelcomeBack(existingName);
       saveSession(user.uid, existingName, user.photoURL || "", "google");
-      goToGame();
-    } else {
-      // Neuer Spieler → Name eingeben lassen
       setStatus("");
       btnGoogle.disabled = false;
+
+      // Auto-redirect nach kurzer Verzögerung
+      setTimeout(goToGame, 800);
+    } else {
+      // Google eingeloggt aber noch kein Name → Eingabe zeigen
       showNameInput();
+      setStatus("");
+      btnGoogle.disabled = false;
+      switchGoogleToConfirm(user);
+    }
+  });
 
-      // Google Button wird jetzt zum "Confirm Name" Button
-      btnGoogle.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;height:20px;"> Confirm & Enter Game`;
-      btnGoogle.onclick = async () => {
-        const name = validateName();
-        if (!name) return;
+  // ── GOOGLE BUTTON ─────────────────────────────────────────
+  btnGoogle.addEventListener("click", async () => {
+    // Wenn Welcome Back aktiv → direkt weiter (Google User wird über onAuthStateChanged behandelt)
+    setStatus("Signing in…");
+    btnGoogle.disabled = true;
 
-        btnGoogle.disabled = true;
-        setStatus("Saving your name…");
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      const result   = await auth.signInWithPopup(provider);
+      const user     = result.user;
 
-        await saveNameToFirebase(user.uid, name);
-        saveSession(user.uid, name, user.photoURL || "", "google");
+      const existingName = await loadNameFromFirebase(user.uid);
+
+      if (existingName) {
+        saveSession(user.uid, existingName, user.photoURL || "", "google");
         goToGame();
-      };
+      } else {
+        // Neuer Google Spieler → Name eingeben
+        showNameInput();
+        setStatus("");
+        btnGoogle.disabled = false;
+        switchGoogleToConfirm(user);
+      }
+    } catch (err) {
+      setStatus("Login failed: " + err.message);
+      btnGoogle.disabled = false;
+    }
+  });
+
+  function switchGoogleToConfirm(user) {
+    btnGoogle.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;height:20px;"> Confirm & Enter Game`;
+    btnGoogle.onclick = async () => {
+      const name = validateName();
+      if (!name) return;
+      btnGoogle.disabled = true;
+      setStatus("Saving your name…");
+      await saveNameToFirebase(user.uid, name);
+      saveSession(user.uid, name, user.photoURL || "", "google");
+      goToGame();
+    };
+  }
+
+  // ── GAST BUTTON ───────────────────────────────────────────
+  btnGuest.addEventListener("click", () => {
+    // Zurückkehrender Gast → direkt weiter
+    if (guestId && guestName && authType === "guest") {
+      saveSession(guestId, guestName, "", "guest");
+      goToGame();
+      return;
     }
 
-  } catch (err) {
-    setStatus("Login failed: " + err.message);
-    btnGoogle.disabled = false;
-  }
+    // Neuer Gast → Name pflichtfeld
+    const name = validateName();
+    if (!name) return;
+
+    const newGuestId = "guest_" + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem("guestId", newGuestId);
+    saveSession(newGuestId, name, "", "guest");
+    goToGame();
+  });
+
 });
-
-// ── GAST LOGIN ────────────────────────────────────────────────
-btnGuest.addEventListener("click", () => {
-  const name = validateName();
-  if (!name) return;
-
-  let guestId = localStorage.getItem("guestId");
-  if (!guestId) {
-    guestId = "guest_" + Math.random().toString(36).slice(2, 10);
-    localStorage.setItem("guestId", guestId);
-  }
-
-  saveSession(guestId, name, "", "guest");
-  goToGame();
-});
-
-// ── HELPERS ───────────────────────────────────────────────────
-function saveSession(uid, name, photo, authType) {
-  localStorage.setItem("playerUID",   uid);
-  localStorage.setItem("playerName",  name);
-  localStorage.setItem("playerPhoto", photo);
-  localStorage.setItem("authType",    authType);
-}
-
-function showNameInput() {
-  nameSection.style.display      = "block";
-  returningSection.style.display = "none";
-}
-
-function showReturning(name) {
-  nameSection.style.display      = "none";
-  returningSection.style.display = "block";
-  returningNameEl.textContent    = name;
-}
-
-function setStatus(msg) {
-  statusEl.textContent = msg;
-}
-
-function goToGame() {
-  window.location.href = "index.html";
-}
