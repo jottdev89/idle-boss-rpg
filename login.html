@@ -201,11 +201,30 @@
     <div class="logo-sub">Alpha v0.0.1</div>
   </div>
 
-  <!-- Name input -->
+  <!-- Name input (only for new players) -->
   <div id="name-section">
     <label>YOUR NAME</label>
     <input id="player-name-input" type="text" maxlength="16" placeholder="Enter your warrior name…" autocomplete="off">
     <div id="name-error"></div>
+  </div>
+
+  <!-- Returning player info (shown instead of name input) -->
+  <div id="returning-section" style="display:none;">
+    <div style="
+      background: linear-gradient(160deg, var(--bg-panel), var(--bg-panel2));
+      border: 1px solid var(--border-gold);
+      border-radius: var(--panel-radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    ">
+      <span style="font-size:24px;">⚔</span>
+      <div>
+        <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-bottom:4px;">WELCOME BACK</div>
+        <div id="returning-name" style="font-family:'Cinzel Decorative',serif;font-size:15px;color:var(--gold-bright);letter-spacing:1px;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Google Login -->
@@ -226,6 +245,7 @@
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="login.js"></script>
 </body>

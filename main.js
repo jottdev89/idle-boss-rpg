@@ -1,6 +1,15 @@
 document.addEventListener("DOMContentLoaded", function() {
 
   // ==========================
+  // FEATURE FLAGS
+  // Setze auf true um ein Feature zu aktivieren
+  // ==========================
+  const FEATURES = {
+    PRESTIGE:   false,   // Prestige-Button & Soul Shards
+    WORLD_BOSS: false,   // World Boss Tab
+  };
+
+  // ==========================
   // DOM
   // ==========================
   const bossFill = document.getElementById("boss-hp-fill");
@@ -27,7 +36,18 @@ header.addEventListener("click", () => {
 
 const dpsPerShard = 10; // 10% DPS pro Soul Shard
 
+// Feature-abhängige UI
+if (!FEATURES.PRESTIGE) {
+  document.getElementById("prestige-btn").style.display = "none";
+  document.getElementById("shard-badge").style.display  = "none";
+}
+
+if (FEATURES.WORLD_BOSS) {
+  document.getElementById("tab-worldboss").style.display = "";
+}
+
 document.getElementById("prestige-btn").onclick = () => {
+  if (!FEATURES.PRESTIGE) return;
 
   if (maxStageReached < 50) {
     showPrestigeModal("locked");
@@ -383,7 +403,10 @@ function calculateDps() {
 
   const baseTotal = baseDps + bonusDps + cardDps;
 
-  const prestigeMultiplier = 1 + (soulShards * SOUL_DPS_BONUS); // 1% pro Soul Shard
+  const prestigeMultiplier = FEATURES.PRESTIGE
+    ? 1 + (soulShards * SOUL_DPS_BONUS)
+    : 1;
+
   return baseTotal * prestigeMultiplier;
 }
 

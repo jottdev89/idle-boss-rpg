@@ -1,0 +1,31 @@
+{
+  "rules": {
+    "players": {
+      "$uid": {
+        ".read":  "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "name":      { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 16" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "$other":    { ".validate": false }
+      }
+    },
+    "worldboss": {
+      "cycle": {
+        ".read":  "auth != null",
+        ".write": "auth != null"
+      },
+      "damage": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['name', 'dmg', 'updatedAt'])",
+          "name":      { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 16" },
+          "dmg":       { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "updatedAt": { ".validate": "newData.isNumber()" },
+          "photoURL":  { ".validate": "newData.isString()" },
+          "$other":    { ".validate": false }
+        }
+      }
+    }
+  }
+}
