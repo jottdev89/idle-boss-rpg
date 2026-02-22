@@ -19,12 +19,7 @@
   <div class="ember" style="--x:90%;--delay:4s;--dur:6s"></div>
 </div>
 
-<div id="tab-bar">
-  <a href="index.html" class="tab-link active">⚔ Solo</a>
-  <a href="worldboss.html" class="tab-link wb-tab" id="tab-worldboss" style="display:none;">☠ World Boss</a>
-</div>
-
-<!-- Player bar -->
+<!-- Player bar (top) -->
 <div id="player-bar">
   <div id="player-bar-left">
     <img id="player-avatar" src="" alt="" style="display:none;">
@@ -35,13 +30,28 @@
 
 <div id="game-wrap">
 
+  <!-- ══ BOSS ARENA (with inline controls) ══ -->
   <section id="boss-arena">
     <div class="arena-glow"></div>
+
+    <!-- Stage controls inside the arena -->
+    <!-- Boss header with integrated stage nav -->
     <div id="boss-header">
-      <div class="skull-deco">☠</div>
-      <h1 id="boss-name">Boss #1</h1>
-      <div class="skull-deco">☠</div>
+      <button id="stage-prev" class="arena-stage-btn">◀</button>
+      <div id="boss-title-wrap">
+        <div class="skull-deco">☠</div>
+        <h1 id="boss-name">Boss #1</h1>
+        <div class="skull-deco">☠</div>
+      </div>
+      <button id="stage-next" class="arena-stage-btn">▶</button>
+      <label class="repeat-container">
+        <input type="checkbox" id="enable-reset">
+        <span class="repeat-checkmark"></span>
+        <span class="repeat-label">Repeat</span>
+      </label>
+      <button id="prestige-btn" class="prestige-btn-small">✦ Prestige</button>
     </div>
+
     <div id="hp-section">
       <div id="hp-bar-wrap">
         <div id="boss-hp-fill" class="fill"></div>
@@ -49,6 +59,7 @@
       </div>
       <div id="boss-hp-text"></div>
     </div>
+
     <div id="stats-row">
       <div id="dps-badge">
         ⚔ <span id="dpstext">1</span> <span class="dps-label">DPS</span>
@@ -59,6 +70,7 @@
     </div>
   </section>
 
+  <!-- ══ LOOT ══ -->
   <section id="loot-section" class="panel">
     <div class="panel-title">
       <span class="rune">᛫</span> Available Loot <span class="rune">᛫</span>
@@ -67,11 +79,13 @@
     <div id="loot-preview"></div>
   </section>
 
+  <!-- ══ INVENTORY ══ -->
   <section id="inventory-section" class="panel">
     <div class="panel-title"><span class="rune">᛫</span> Inventory <span class="rune">᛫</span></div>
     <div id="inventory"></div>
   </section>
 
+  <!-- ══ BOSS LOOT LIST ══ -->
   <section id="loot-list-section" class="panel">
     <div class="panel-title"><span class="rune">᛫</span> Pending Boss Loot <span class="rune">᛫</span></div>
     <div id="boss-loot-list"></div>
@@ -79,30 +93,17 @@
 
 </div>
 
-<div id="control-panel">
-  <div id="control-header">
-    <div id="panel-title-row">
-      <span class="panel-icon">⚙</span>
-      <span>Combat Controls</span>
-    </div>
-    <button id="control-toggle">▲</button>
-  </div>
-  <div id="control-content">
-    <div class="stage-wrapper">
-      <button id="stage-prev" class="stage-btn"><span>◀</span> Previous</button>
-      <div id="stage-indicator">STAGE <span id="stage-num">1</span></div>
-      <button id="stage-next" class="stage-btn">Next <span>▶</span></button>
-    </div>
-    <div class="control-bottom">
-      <label class="repeat-container">
-        <input type="checkbox" id="enable-reset">
-        <span class="repeat-checkmark"></span>
-        <span>Repeat Boss</span>
-      </label>
-      <button id="prestige-btn" class="prestige-btn">✦ Prestige ✦</button>
-    </div>
-  </div>
-</div>
+<!-- ══ BOTTOM SCENE NAV ══ -->
+<nav id="scene-nav">
+  <a href="index.html" class="scene-btn active">
+    <span class="scene-icon">⚔</span>
+    <span class="scene-label">Solo</span>
+  </a>
+  <a href="worldboss.html" class="scene-btn" id="tab-worldboss" style="display:none;">
+    <span class="scene-icon">☠</span>
+    <span class="scene-label">World Boss</span>
+  </a>
+</nav>
 
 <span id="version">α v0.0.1</span>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>

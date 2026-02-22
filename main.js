@@ -25,16 +25,8 @@ document.addEventListener("DOMContentLoaded", function() {
   const stageNext = document.getElementById("stage-next");
   const resetCheckbox = document.getElementById("enable-reset");
   const versionEl = document.getElementById("version");
-  const panel = document.getElementById("control-panel");
-  const toggleBtn = document.getElementById("control-toggle");
-  const header = document.getElementById("control-header");
 
-header.addEventListener("click", () => {
-  panel.classList.toggle("collapsed");
-  toggleBtn.textContent = panel.classList.contains("collapsed") ? "+" : "–";
-});
-
-const dpsPerShard = 10; // 10% DPS pro Soul Shard
+const dpsPerShard = 10;
 
 // Feature-abhängige UI
 if (!FEATURES.PRESTIGE) {
@@ -198,19 +190,17 @@ function showPrestigeModal(type, reward = 0, multiplier = "1.00") {
 
 stagePrev.onclick = () => {
   const next = getNextAvailableStage(-1);
-  if (next !== null) {
-    stage = next;
-    spawnBoss();
-  }
+  if (next !== null) { stage = next; spawnBoss(); }
+  stagePrev.blur();
 };
+stagePrev.addEventListener("touchend", () => setTimeout(() => stagePrev.blur(), 0));
 
 stageNext.onclick = () => {
   const next = getNextAvailableStage(1);
-  if (next !== null) {
-    stage = next;
-    spawnBoss();
-  }
+  if (next !== null) { stage = next; spawnBoss(); }
+  stageNext.blur();
 };
+stageNext.addEventListener("touchend", () => setTimeout(() => stageNext.blur(), 0));
 
   // ==========================
   // GAME STATE
@@ -683,7 +673,6 @@ function getNextAvailableStage(direction) {
 
     bossHp = bossMaxHp;
     bossName.textContent = `Boss #${stage}`;
-    if (stageNumEl) stageNumEl.textContent = stage;
 
     updateBossUI();
     renderLootPreview();

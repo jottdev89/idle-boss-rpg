@@ -54,7 +54,7 @@ body {
   font-size: 15px;
   min-height: 100vh;
   overflow-x: hidden;
-  padding-bottom: calc(var(--control-h) + 12px);
+  padding-bottom: 70px; /* space for scene-nav */
   position: relative;
 }
 
@@ -104,15 +104,7 @@ body {
   gap: 8px;
 }
 
-/* ============================================================
-   TAB BAR
-   ============================================================ */
-#tab-bar {
-  display: flex;
-  border-bottom: 1px solid var(--border-dim);
-  position: relative;
-  z-index: 10;
-  background: #09060c;
+/* old tab-bar removed — replaced by #scene-nav at bottom */
 }
 
 .tab-link {
@@ -186,9 +178,25 @@ body {
 #boss-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+#boss-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 14px;
+}
+
+#arena-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .skull-deco {
@@ -838,7 +846,7 @@ body {
 }
 
 /* ============================================================
-   PLAYER BAR (shown on all game pages)
+   PLAYER BAR (top, sticky)
    ============================================================ */
 #player-bar {
   display: flex;
@@ -850,8 +858,8 @@ body {
   font-family: var(--font-title);
   font-size: 12px;
   position: sticky;
-  top: 45px;
-  z-index: 400;
+  top: 0;
+  z-index: 500;
 }
 
 #player-bar-left {
@@ -868,10 +876,7 @@ body {
   object-fit: cover;
 }
 
-#player-bar-name {
-  color: var(--gold);
-  letter-spacing: 1px;
-}
+#player-bar-name { color: var(--gold); letter-spacing: 1px; }
 
 #logout-btn {
   background: transparent;
@@ -886,41 +891,162 @@ body {
   transition: all 0.2s;
 }
 
-#logout-btn:hover {
-  border-color: var(--red-glow);
-  color: #ff6060;
+#logout-btn:hover { border-color: var(--red-glow); color: #ff6060; }
+
+/* ============================================================
+   ARENA CONTROLS (inside boss section)
+   ============================================================ */
+#arena-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 8px;
+}
+
+#stage-indicator {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  text-shadow: 0 0 8px rgba(200,150,50,0.5);
+  flex: 1;
+  text-align: center;
+}
+
+#stage-indicator span { color: var(--gold-bright); font-size: 13px; }
+
+.arena-stage-btn {
+  background: linear-gradient(160deg, #2a1e30, #1c1424);
+  border: 1px solid #5a4070;
+  color: #c0a0d0;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.arena-stage-btn:hover:not(:disabled) {
+  background: linear-gradient(160deg, #3a2a48, #281c36);
+  border-color: #9060c0;
+  color: #e0c0f0;
+  box-shadow: 0 0 10px rgba(120,60,180,0.35);
+}
+
+.arena-stage-btn:focus,
+.arena-stage-btn:focus-visible,
+.arena-stage-btn:focus-within {
+  outline: none !important;
+  border-color: #5a4070 !important;
+  color: #c0a0d0 !important;
+  box-shadow: none !important;
+  background: linear-gradient(160deg, #2a1e30, #1c1424) !important;
+}
+
+.arena-stage-btn:active:not(:disabled) {
+  background: linear-gradient(160deg, #2a1e30, #1c1424);
+  border-color: #5a4070;
+  color: #c0a0d0;
+  box-shadow: none;
+}
+
+.arena-stage-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+.arena-stage-btn.flash { animation: btnFlash 0.25s ease forwards; }
+
+.repeat-label {
+  font-family: var(--font-title);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.prestige-btn-small {
+  background: linear-gradient(135deg, #1e1000, #2c1800);
+  border: 1px solid var(--border-gold);
+  color: var(--gold);
+  font-family: var(--font-title);
+  font-size: 11px;
+  letter-spacing: 1px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.prestige-btn-small:hover {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 10px rgba(200,160,40,0.4);
 }
 
 /* ============================================================
-   TAB BAR
+   BOTTOM SCENE NAV
    ============================================================ */
-#tab-bar {
-  position: sticky;
-  top: 0;
-  z-index: 500;
+#scene-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
   display: flex;
-  background: linear-gradient(180deg, #0e0b14 0%, #0a0810 100%);
-  border-bottom: 1px solid var(--border-dim);
-  box-shadow: 0 2px 16px rgba(0,0,0,0.7);
+  background: linear-gradient(180deg, #100d18, #0a0810);
+  border-top: 1px solid var(--border-dim);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.7);
+  z-index: 9999;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.tab-link {
+.scene-btn {
   flex: 1;
-  text-align: center;
-  padding: 12px 8px;
-  font-family: var(--font-title);
-  font-size: 12px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
   text-decoration: none;
   color: var(--text-dim);
-  border-bottom: 2px solid transparent;
+  font-family: var(--font-title);
+  border-top: 2px solid transparent;
   transition: all 0.2s ease;
+  gap: 3px;
 }
 
-.tab-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.02); }
-.tab-link.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(200,150,50,0.05); }
-.tab-link.wb-tab.active { color: var(--red-bright); border-bottom-color: var(--red-bright); background: rgba(200,30,20,0.05); }
+.scene-btn:hover { background: rgba(255,255,255,0.02); color: var(--text-primary); }
+
+.scene-btn.active {
+  color: var(--gold);
+  border-top-color: var(--gold);
+  background: rgba(200,150,50,0.05);
+}
+
+.scene-btn.active .scene-icon { filter: drop-shadow(0 0 6px rgba(200,150,50,0.6)); }
+
+/* World Boss active tab */
+a.scene-btn[href="worldboss.html"].active {
+  color: var(--red-bright);
+  border-top-color: var(--red-bright);
+  background: rgba(200,30,20,0.05);
+}
+
+.scene-icon { font-size: 18px; line-height: 1; }
+.scene-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
 
 /* ============================================================
    WORLD BOSS PAGE

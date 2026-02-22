@@ -20,12 +20,7 @@
   <div class="ember" style="--x:95%;--delay:1s;--dur:5s"></div>
 </div>
 
-<div id="tab-bar">
-  <a href="index.html" class="tab-link">⚔ Solo</a>
-  <a href="worldboss.html" class="tab-link wb-tab active">☠ World Boss</a>
-</div>
-
-<!-- Player bar -->
+<!-- Player bar (top) -->
 <div id="player-bar">
   <div id="player-bar-left">
     <img id="player-avatar" src="" alt="" style="display:none;">
@@ -35,8 +30,6 @@
 </div>
 
 <div id="wb-wrap">
-
-  <!-- Boss Arena -->
   <section id="wb-arena">
     <div class="arena-glow"></div>
     <div id="wb-boss-header">
@@ -56,7 +49,6 @@
     <div id="wb-status"></div>
   </section>
 
-  <!-- Ranking -->
   <section id="wb-ranking-section">
     <div id="wb-ranking-title">
       <span class="rune">᛫</span> Damage Ranking <span class="rune">᛫</span>
@@ -64,12 +56,21 @@
     </div>
     <div id="wb-leaderboard"></div>
   </section>
-
 </div>
 
-<span id="version">α v0.0.1</span>
+<!-- ══ BOTTOM SCENE NAV ══ -->
+<nav id="scene-nav">
+  <a href="index.html" class="scene-btn">
+    <span class="scene-icon">⚔</span>
+    <span class="scene-label">Solo</span>
+  </a>
+  <a href="worldboss.html" class="scene-btn active">
+    <span class="scene-icon">☠</span>
+    <span class="scene-label">World Boss</span>
+  </a>
+</nav>
 
-<!-- Firebase SDKs -->
+<span id="version">α v0.0.1</span>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
