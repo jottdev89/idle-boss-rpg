@@ -279,8 +279,15 @@ body {
 }
 
 /* ============================================================
-   DPS BADGE
+   STATS ROW (DPS + SHARDS)
    ============================================================ */
+#stats-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 #dps-badge {
   display: inline-flex;
   align-items: center;
@@ -298,6 +305,26 @@ body {
 
 #dps-badge #dpstext {
   color: var(--gold-bright);
+  font-weight: 600;
+}
+
+#shard-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--border-glow);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-family: var(--font-title);
+  font-size: 14px;
+  color: var(--purple);
+  letter-spacing: 1px;
+  box-shadow: 0 0 10px rgba(120, 60, 180, 0.2);
+}
+
+#shard-badge #shardtext {
+  color: #c080ff;
   font-weight: 600;
 }
 
@@ -728,16 +755,16 @@ body {
 #version {
   position: fixed;
   top: 4px;
-  right: 5px;
+  left: 5px;
   font-size: 8px;
   font-family: var(--font-title);
-  color: var(--border-dim);
+  color: #ffffff;
   letter-spacing: 1px;
   z-index: 1000;
   cursor: default;
   user-select: none;
   padding: 2px 5px;
-  border: 1px solid #1e1828;
+  border: 1px solid #444;
   border-radius: 3px;
   background: rgba(0,0,0,0.6);
 }

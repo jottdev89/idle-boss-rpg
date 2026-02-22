@@ -7,8 +7,10 @@ document.addEventListener("DOMContentLoaded", function() {
   const bossText = document.getElementById("boss-hp-text");
   const bossName = document.getElementById("boss-name");
   const dpstext = document.getElementById("dpstext");
+  const shardtext = document.getElementById("shardtext");
   const inventoryEl = document.getElementById("inventory");
   const lootPreviewEl = document.getElementById("loot-preview");
+  const stageNumEl = document.getElementById("stage-num");
   const bossLootListEl = document.getElementById("boss-loot-list");
   const stagePrev = document.getElementById("stage-prev");
   const stageNext = document.getElementById("stage-next");
@@ -28,40 +30,147 @@ const dpsPerShard = 10; // 10% DPS pro Soul Shard
 document.getElementById("prestige-btn").onclick = () => {
 
   if (maxStageReached < 50) {
-    alert("Prestige unlocked at Stage 50");
+    showPrestigeModal("locked");
     return;
   }
 
-  const reward = calculatePrestigeReward(); // Soul Shards, unverändert
-  const confirmPrestige = confirm(
-    `Prestige?\n\nYou will gain ${reward} Soul Shards\n(+${reward * dpsPerShard}% DPS permanent)`
-  );
-
-  if (!confirmPrestige) return;
-
-  // Soul Shards hinzufügen
-  soulShards += reward;
-
-  // RESET
-  stage = 1;
-  inventory = [];
-  bossLooted = {};
-  maxStageReached = 1;
-  bonusDps = 0;
-
-  updateDps();
-  renderInventory();
-  spawnBoss();
-  saveGame();
-
-  // Berechnung des Multipliers für Anzeige
-  const multiplier = 1 + (soulShards * dpsPerShard / 100);
-
-  alert(`Prestige successful!
-+${reward} Soul Shards
-Total: ${soulShards}
-DPS Multiplier: x${multiplier.toFixed(2)}`);
+  const reward = calculatePrestigeReward();
+  showPrestigeModal("confirm", reward);
 };
+
+function showPrestigeModal(type, reward = 0, multiplier = "1.00") {
+
+  if (document.getElementById("prestige-modal")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "prestige-modal";
+  overlay.style.cssText = `
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.8);
+    display:flex;align-items:center;justify-content:center;
+    z-index:99999;
+    backdrop-filter:blur(5px);
+  `;
+
+  const box = document.createElement("div");
+  box.style.cssText = `
+    background:linear-gradient(160deg,#14101c,#0e0c14);
+    border:1px solid #6b3fa0;
+    border-radius:14px;
+    padding:24px 20px;
+    width:90%;max-width:300px;
+    font-family:'Cinzel',serif;
+    box-shadow:0 0 40px rgba(100,50,180,0.35),inset 0 1px 0 rgba(255,255,255,0.05);
+    text-align:center;
+  `;
+
+  if (type === "locked") {
+
+    box.innerHTML = `
+      <div style="font-size:28px;margin-bottom:10px;">🔒</div>
+      <div style="font-family:'Cinzel Decorative',serif;font-size:14px;color:#c9973a;letter-spacing:2px;margin-bottom:12px;">
+        Prestige Locked
+      </div>
+      <div style="font-family:'Crimson Text',serif;font-size:15px;color:#7a6e5a;margin-bottom:20px;line-height:1.5;">
+        Reach <span style="color:#c9973a;">Stage 50</span> to unlock Prestige.
+      </div>
+      <button class="pm-btn-close" style="
+        width:100%;padding:10px;
+        background:transparent;border:1px solid #2a2030;
+        color:#7a6e5a;font-family:'Cinzel',serif;font-size:12px;
+        letter-spacing:1px;border-radius:8px;cursor:pointer;
+        transition:all 0.2s;
+      ">Close</button>
+    `;
+
+    box.querySelector(".pm-btn-close").onclick = () => overlay.remove();
+
+  } else if (type === "confirm") {
+
+    const dpsGain = (reward * dpsPerShard).toFixed(0);
+
+    box.innerHTML = `
+      <div style="font-size:28px;margin-bottom:10px;">✦</div>
+      <div style="font-family:'Cinzel Decorative',serif;font-size:14px;color:#c9973a;letter-spacing:2px;margin-bottom:14px;">
+        Prestige
+      </div>
+      <div style="font-family:'Crimson Text',serif;font-size:15px;color:#7a6e5a;margin-bottom:6px;line-height:1.6;">
+        You will receive
+        <span style="color:#f0c060;font-size:18px;font-weight:600;"> ${reward} Soul Shards</span>
+      </div>
+      <div style="font-family:'Crimson Text',serif;font-size:13px;color:#7a6e5a;margin-bottom:20px;">
+        +${dpsGain}% permanent DPS bonus
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="pm-btn-cancel" style="
+          flex:1;padding:10px;
+          background:transparent;border:1px solid #2a2030;
+          color:#7a6e5a;font-family:'Cinzel',serif;font-size:11px;
+          letter-spacing:1px;border-radius:8px;cursor:pointer;
+        ">Cancel</button>
+        <button class="pm-btn-confirm" style="
+          flex:1;padding:10px;
+          background:linear-gradient(135deg,#1e1000,#2c1800);
+          border:1px solid #7a5c1e;
+          color:#f0c060;font-family:'Cinzel',serif;font-size:11px;
+          letter-spacing:1px;border-radius:8px;cursor:pointer;
+          box-shadow:0 0 10px rgba(160,110,20,0.3);
+        ">Confirm</button>
+      </div>
+    `;
+
+    box.querySelector(".pm-btn-cancel").onclick = () => overlay.remove();
+
+    box.querySelector(".pm-btn-confirm").onclick = () => {
+      overlay.remove();
+
+      soulShards += reward;
+
+      stage = 1;
+      inventory = [];
+      bossLooted = {};
+      maxStageReached = 1;
+      bonusDps = 0;
+
+      updateDps();
+      updateShardDisplay();
+      renderInventory();
+      spawnBoss();
+      saveGame();
+
+      const multiplier = (1 + (soulShards * dpsPerShard / 100)).toFixed(2);
+      showPrestigeModal("success", reward, multiplier);
+    };
+
+  } else if (type === "success") {
+
+    box.innerHTML = `
+      <div style="font-size:28px;margin-bottom:10px;animation:skullPulse 2s infinite;">⚔</div>
+      <div style="font-family:'Cinzel Decorative',serif;font-size:14px;color:#c9973a;letter-spacing:2px;margin-bottom:14px;">
+        Prestige Successful!
+      </div>
+      <div style="font-family:'Crimson Text',serif;color:#7a6e5a;font-size:15px;line-height:1.8;margin-bottom:20px;">
+        <span style="color:#f0c060;font-size:18px;font-weight:600;">+${reward} Soul Shards</span><br>
+        Total: <span style="color:#c9973a;">${soulShards}</span><br>
+        DPS Multiplier: <span style="color:#c9973a;">x${multiplier}</span>
+      </div>
+      <button class="pm-btn-close" style="
+        width:100%;padding:10px;
+        background:linear-gradient(135deg,#1e1000,#2c1800);
+        border:1px solid #7a5c1e;color:#f0c060;
+        font-family:'Cinzel',serif;font-size:12px;
+        letter-spacing:1px;border-radius:8px;cursor:pointer;
+        box-shadow:0 0 10px rgba(160,110,20,0.3);
+      ">Weiter</button>
+    `;
+
+    box.querySelector(".pm-btn-close").onclick = () => overlay.remove();
+  }
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+}
   
   // ==========================
 // STAGE NAVIGATION
@@ -280,7 +389,12 @@ function calculateDps() {
 
 function updateDps() {
   dps = calculateDps();
-  dpstext.textContent = dps.toFixed(1); // Optional: 1 Nachkommastelle
+  dpstext.textContent = dps.toFixed(1);
+  if (shardtext) shardtext.textContent = Math.floor(soulShards);
+}
+
+function updateShardDisplay() {
+  if (shardtext) shardtext.textContent = Math.floor(soulShards);
 }
 
   // ==========================
@@ -291,32 +405,7 @@ function updateDps() {
   return Math.floor(Math.pow(maxStageReached - 40, 1.2) / 5);
 }
 
-function prestige() {
 
-  const reward = calculatePrestigeReward();
-  if (reward <= 0) return;
-
-  soulShards += reward;
-  // RESET
-  stage = 1;
-  inventory = [];
-  bossLooted = {};
-  maxStageReached = 1;
-  bonusDps = 0;
-
-  updateDps();
-  renderInventory();
-  spawnBoss();
-  saveGame();
-
-  const multiplier = 1 + (soulShards * SOUL_DPS_BONUS);
-
-alert(`Prestige successful!
-+${reward} Soul Shards
-Total: ${soulShards}
-DPS Multiplier: x${multiplier.toFixed(2)}`);
-}
-  
   function getAllRarities() {
     return [...new Set(cardPool.map(c => c.rarity))];
   }
@@ -358,7 +447,7 @@ function getNextAvailableStage(direction) {
   while (true) {
     newStage += direction;
 
-    // Grenzen prüfen
+    // Check bounds
     if (newStage < 1 || newStage > maxStageReached) {
       return null; // KEIN anderer Boss gefunden
     }
@@ -386,7 +475,7 @@ function getNextAvailableStage(direction) {
   inventoryEl.innerHTML = "";
 
   if (inventory.length === 0) {
-    inventoryEl.textContent = "— empty —";
+    inventoryEl.innerHTML = `<div class="empty-state">— inventory empty —</div>`;
     return;
   }
 
@@ -398,7 +487,7 @@ function getNextAvailableStage(direction) {
     div.classList.add("card", cardData.rarity);
 
     div.textContent =
-      `${item.count}x ${cardData.name} (+${cardData.cdps} dps) = +${cardData.cdps * item.count}`;
+      `${item.count}x ${cardData.name} (+${cardData.cdps} dps) = +${cardData.cdps * item.count} dps`;
 
     inventoryEl.appendChild(div);
   });
@@ -440,11 +529,7 @@ function getNextAvailableStage(direction) {
   // ==========================
   function renderLootPreview() {
 
-    lootPreviewEl.innerHTML = `
-      <b>loot available:</b>
-      <button id="drop-info-btn" style="cursor:pointer;margin-left:6px;border: 2px solid red">loot chances</button>
-      <br>
-    `;
+    lootPreviewEl.innerHTML = "";
 
     let any = false;
 
@@ -462,11 +547,8 @@ function getNextAvailableStage(direction) {
     });
 
     if (!any) {
-      lootPreviewEl.innerHTML += "<div>— no loot remaining —</div>";
+      lootPreviewEl.innerHTML = `<div class="empty-state">— no loot remaining —</div>`;
     }
-
-    document.getElementById("drop-info-btn")
-      .addEventListener("click", openDropChanceModal);
   }
 
   // ==========================
@@ -478,51 +560,39 @@ function getNextAvailableStage(direction) {
 
     const modal = document.createElement("div");
     modal.id = "drop-chance-modal";
-    modal.style = `
-      position:fixed;inset:0;
-      background:rgba(0,0,0,0.6);
-      display:flex;align-items:center;justify-content:center;
-      z-index:9999;
-    `;
 
     const box = document.createElement("div");
-    box.style = `
-      background:#111;color:#fff;
-      padding:12px;border-radius:8px;
-      width:90%;max-width:320px;
-      font-size:12px;
-    `;
+    box.className = "modal-box";
 
     box.innerHTML = `
-      <b>Drop Chances</b><br><br>
+      <div class="modal-title">⚔ Drop Chances ⚔</div>
       ${cardPool.map(card => {
 
-        let dropText = "drops always";
+        let dropText = "always available";
 
         if (card.specialStage) {
-          dropText = `drops at boss ${card.specialStage}`;
+          dropText = `Boss ${card.specialStage}`;
         } else if (card.minStage) {
-          dropText = `drops from boss ${card.minStage}+`;
+          dropText = `from Boss ${card.minStage}`;
         }
 
         return `
           <div class="card ${card.rarity}" style="margin-bottom:6px;">
-            ${card.rarity.toUpperCase()}
+            ${card.rarity.toUpperCase()} &mdash; ${card.name}
             <br>
-            <small>
-              Chance: ${(card.chance * 100).toFixed(3)}%<br>
-              ${dropText}
+            <small style="opacity:0.75;font-family:'Crimson Text',serif;font-weight:400;font-size:12px;">
+              Chance: ${(card.chance * 100).toFixed(3)}% &bull; ${dropText}
             </small>
           </div>
         `;
       }).join("")}
-      <button id="close-drop-modal" style="width:100%;margin-top:8px;">close</button>
+      <button class="close-modal-btn">Close</button>
     `;
 
     modal.appendChild(box);
     document.body.appendChild(modal);
 
-    document.getElementById("close-drop-modal").onclick = () => modal.remove();
+    box.querySelector(".close-modal-btn").onclick = () => modal.remove();
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
   }
 
@@ -539,8 +609,8 @@ function getNextAvailableStage(direction) {
     stage++;
   }
 
-  // 🔥 Wenn wir gerade den höchsten Boss besiegt haben,
-  // soll maxStageReached IMMER erhöht werden
+  // 🔥 If we just defeated the highest boss,
+  // maxStageReached should ALWAYS be incremented
   if (wasMaxStage) {
     maxStageReached++;
   }
@@ -590,6 +660,7 @@ function getNextAvailableStage(direction) {
 
     bossHp = bossMaxHp;
     bossName.textContent = `Boss #${stage}`;
+    if (stageNumEl) stageNumEl.textContent = stage;
 
     updateBossUI();
     renderLootPreview();
@@ -644,7 +715,7 @@ function getNextAvailableStage(direction) {
     }
 
     if (!anyVisible) {
-      bossLootListEl.innerHTML = "<div><i>— all boss loot collected —</i></div>";
+      bossLootListEl.innerHTML = `<div class="empty-state">— all boss loot collected —</div>`;
     }
   }
 
@@ -708,14 +779,17 @@ function getNextAvailableStage(direction) {
   bossLooted = data.bossLooted ?? {};
   maxStageReached = data.maxStageReached ?? stage;
   soulShards = data.soulShards ?? 0;
-console.log("SoulShards after load:", soulShards);
+  console.log("SoulShards after load:", soulShards);
   updateDps();
+  updateShardDisplay();
   renderInventory();
 }
 
   // ==========================
   // START
   // ==========================
+  document.getElementById("drop-info-btn").addEventListener("click", openDropChanceModal);
+
   loadGame();
   spawnBoss();
   updateDps();
