@@ -27,13 +27,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const playerPhoto = localStorage.getItem("playerPhoto") || "";
 
   // ── FIREBASE ─────────────────────────────────────────────
-  // firebase already initialized by auth-guard / Firebase SDKs
-  // Use a try/catch in case it was already initialized
+  // auth-guard.js lädt Firebase bereits — app könnte schon existieren
   let db;
   try {
-    firebase.initializeApp(FIREBASE_CONFIG);
-  } catch(e) {}
-  db = firebase.database();
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    db = firebase.database();
+  } catch(e) {
+    console.error("Firebase init failed:", e);
+    db = null;
+  }
 
   // ── GAME STATE ────────────────────────────────────────────
   let myDamage   = 0;
@@ -70,23 +74,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── BOSS CYCLE ────────────────────────────────────────────
   async function initCycle() {
-    const cycleRef = db.ref("worldboss/cycle");
-    const snap     = await cycleRef.once("value");
-    const data     = snap.val();
-    const now      = Date.now();
+    if (!db) {
+      // Firebase nicht verfügbar — lokal starten
+      cycleStart = Date.now();
+      myDamage   = 0;
+      bossHp     = WB_MAX_HP;
+      updateHpUI();
+      return;
+    }
 
-    if (!data || !data.startTime || (now - data.startTime) >= WB_RESET_MS) {
-      cycleStart = now;
-      await cycleRef.set({ startTime: now });
-      await db.ref(`worldboss/damage/${playerId}`).set({
-        name: playerName, photoURL: playerPhoto, dmg: 0, updatedAt: now
-      });
-      myDamage = 0;
-    } else {
-      cycleStart = data.startTime;
-      const mySnap = await db.ref(`worldboss/damage/${playerId}`).once("value");
-      const myData = mySnap.val();
-      myDamage = myData ? (myData.dmg || 0) : 0;
+    try {
+      const cycleRef = db.ref("worldboss/cycle");
+      const snap     = await cycleRef.once("value");
+      const data     = snap.val();
+      const now      = Date.now();
+
+      if (!data || !data.startTime || (now - data.startTime) >= WB_RESET_MS) {
+        cycleStart = now;
+        await cycleRef.set({ startTime: now });
+        await db.ref(`worldboss/damage/${playerId}`).set({
+          name: playerName, photoURL: playerPhoto, dmg: 0, updatedAt: now
+        });
+        myDamage = 0;
+      } else {
+        cycleStart = data.startTime;
+        const mySnap = await db.ref(`worldboss/damage/${playerId}`).once("value");
+        const myData = mySnap.val();
+        myDamage = myData ? (myData.dmg || 0) : 0;
+      }
+    } catch(e) {
+      console.warn("Firebase initCycle failed:", e);
+      cycleStart = Date.now();
+      myDamage   = 0;
     }
 
     bossHp = Math.max(0, WB_MAX_HP - myDamage);
@@ -95,19 +114,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── WRITE DAMAGE ─────────────────────────────────────────
   async function writeDamage() {
+    if (!db) return;
     const now = Date.now();
     if (now - lastWrite < WRITE_MS) return;
     lastWrite = now;
     try {
       await db.ref(`worldboss/damage/${playerId}`).set({
-        name: playerName, photoURL: playerPhoto,
-        dmg: Math.floor(myDamage), updatedAt: now
+        name:      playerName,
+        photoURL:  playerPhoto,
+        dmg:       Math.floor(myDamage),
+        updatedAt: now
       });
     } catch(e) { console.warn("Firebase write failed:", e); }
   }
 
   // ── LIVE LEADERBOARD ─────────────────────────────────────
   function subscribeLeaderboard() {
+    if (!db) return;
     if (lbListener) db.ref("worldboss/damage").off("value", lbListener);
     lbListener = db.ref("worldboss/damage").on("value", snap => {
       const data = snap.val();
