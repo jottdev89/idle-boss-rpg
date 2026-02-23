@@ -1462,9 +1462,10 @@ a.scene-btn[href="worldboss.html"].active {
   color: var(--text-dim);
   font-size: 10px;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 6px 8px;
   line-height: 1;
   transition: color 0.2s;
+  pointer-events: none; /* Header-Click übernimmt */
 }
 #chat-toggle:hover { color: var(--gold); }
 
