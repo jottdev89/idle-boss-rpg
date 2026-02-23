@@ -19,97 +19,128 @@
   <div class="ember" style="--x:90%;--delay:4s;--dur:6s"></div>
 </div>
 
-<!-- Player bar (top) -->
-<div id="player-bar">
-  <div id="player-bar-left">
-    <img id="player-avatar" src="" alt="" style="display:none;">
-    <span id="player-bar-name"></span>
+<!-- Player bar (top, minimal) -->
+<div id="player-bar"></div>
+
+<!-- ══ FIGHT SCENE (always running in background) ══ -->
+<div id="fight-scene">
+  <div id="game-wrap">
+
+    <section id="boss-arena">
+      <div class="arena-glow"></div>
+      <div id="boss-header">
+        <div id="stage-prev" class="arena-stage-btn">◀</div>
+        <div id="boss-title-wrap">
+          <div class="skull-deco">☠</div>
+          <h1 id="boss-name">Boss #1</h1>
+          <div class="skull-deco">☠</div>
+        </div>
+        <div id="stage-next" class="arena-stage-btn">▶</div>
+        <label class="repeat-container">
+          <input type="checkbox" id="enable-reset">
+          <span class="repeat-checkmark"></span>
+          <span class="repeat-label">Repeat</span>
+        </label>
+        <button id="prestige-btn" class="prestige-btn-small">✦ Prestige</button>
+      </div>
+      <div id="hp-section">
+        <div id="hp-bar-wrap">
+          <div id="boss-hp-fill" class="fill"></div>
+          <div id="hp-bar-shine"></div>
+        </div>
+        <div id="boss-hp-text"></div>
+      </div>
+    </section>
+
+    <!-- ══ PLAYER EXP BAR ══ -->
+    <section id="player-exp-bar">
+      <div id="player-info-row">
+        <img id="player-avatar" src="" alt="" style="display:none;">
+        <div id="player-info-text">
+          <div id="player-name-display"></div>
+          <div id="player-level-label">LVL <span id="player-level">1</span></div>
+        </div>
+        <div id="player-resources">
+          <div id="gold-badge">💰 <span id="gold-amount">0</span> <span class="dps-label">GOLD</span></div>
+          <div id="exp-numbers"><span id="exp-current">0</span> / <span id="exp-needed">100</span> EXP</div>
+        </div>
+      </div>
+      <div id="exp-bar-wrap">
+        <div id="exp-bar-fill"></div>
+        <div id="exp-bar-shine"></div>
+      </div>
+    </section>
+
+    <section id="inventory-section" class="panel">
+      <div class="panel-title">
+        <span><span class="rune">᛫</span> Inventory <span class="rune">᛫</span></span>
+        <div id="stats-row">
+          <div id="dps-badge">⚔ <span id="dpstext">1</span> <span class="dps-label">DPS</span></div>
+          <div id="shard-badge">✦ <span id="shardtext">0</span> <span class="dps-label">SHARDS</span></div>
+        </div>
+      </div>
+      <div id="inventory"></div>
+    </section>
+
   </div>
-  <button id="logout-btn">Logout</button>
 </div>
 
-<div id="game-wrap">
+<!-- ══ TAB OVERLAY (shown over fight scene when other tabs active) ══ -->
+<div id="tab-overlay" style="display:none;">
+  <div id="tab-content"></div>
+</div>
 
-  <!-- ══ BOSS ARENA (with inline controls) ══ -->
-  <section id="boss-arena">
-    <div class="arena-glow"></div>
-
-    <!-- Stage controls inside the arena -->
-    <!-- Boss header with integrated stage nav -->
-    <div id="boss-header">
-      <button id="stage-prev" class="arena-stage-btn">◀</button>
-      <div id="boss-title-wrap">
-        <div class="skull-deco">☠</div>
-        <h1 id="boss-name">Boss #1</h1>
-        <div class="skull-deco">☠</div>
-      </div>
-      <button id="stage-next" class="arena-stage-btn">▶</button>
-      <label class="repeat-container">
-        <input type="checkbox" id="enable-reset">
-        <span class="repeat-checkmark"></span>
-        <span class="repeat-label">Repeat</span>
-      </label>
-      <button id="prestige-btn" class="prestige-btn-small">✦ Prestige</button>
+<!-- ══ GLOBAL CHAT ══ -->
+<div id="chat-wrap">
+  <div id="chat-header">
+    <span id="chat-title">💬 Global Chat</span>
+    <div id="chat-online"></div>
+    <button id="chat-toggle">▲</button>
+  </div>
+  <div id="chat-body">
+    <div id="chat-messages"></div>
+    <div id="chat-input-row">
+      <input id="chat-input" type="text" maxlength="120" placeholder="Message…" autocomplete="off">
+      <button id="chat-send">Send</button>
     </div>
-
-    <div id="hp-section">
-      <div id="hp-bar-wrap">
-        <div id="boss-hp-fill" class="fill"></div>
-        <div id="hp-bar-shine"></div>
-      </div>
-      <div id="boss-hp-text"></div>
-    </div>
-
-    <div id="stats-row">
-      <div id="dps-badge">
-        ⚔ <span id="dpstext">1</span> <span class="dps-label">DPS</span>
-      </div>
-      <div id="shard-badge">
-        ✦ <span id="shardtext">0</span> <span class="dps-label">SHARDS</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══ LOOT ══ -->
-  <section id="loot-section" class="panel">
-    <div class="panel-title">
-      <span class="rune">᛫</span> Available Loot <span class="rune">᛫</span>
-      <button id="drop-info-btn" class="chance-btn">Drop Chances</button>
-    </div>
-    <div id="loot-preview"></div>
-  </section>
-
-  <!-- ══ INVENTORY ══ -->
-  <section id="inventory-section" class="panel">
-    <div class="panel-title"><span class="rune">᛫</span> Inventory <span class="rune">᛫</span></div>
-    <div id="inventory"></div>
-  </section>
-
-  <!-- ══ BOSS LOOT LIST ══ -->
-  <section id="loot-list-section" class="panel">
-    <div class="panel-title"><span class="rune">᛫</span> Pending Boss Loot <span class="rune">᛫</span></div>
-    <div id="boss-loot-list"></div>
-  </section>
-
+  </div>
 </div>
 
 <!-- ══ BOTTOM SCENE NAV ══ -->
 <nav id="scene-nav">
-  <a href="index.html" class="scene-btn active">
-    <span class="scene-icon">⚔</span>
-    <span class="scene-label">Solo</span>
+  <a href="#" class="scene-btn" data-tab="profile">
+    <span class="scene-icon">👤</span>
+    <span class="scene-label">Profile</span>
   </a>
-  <a href="worldboss.html" class="scene-btn" id="tab-worldboss" style="display:none;">
+  <a href="#" class="scene-btn" data-tab="upgrades">
+    <span class="scene-icon">⬆</span>
+    <span class="scene-label">Upgrades</span>
+  </a>
+  <a href="#" class="scene-btn" data-tab="pets">
+    <span class="scene-icon">🐾</span>
+    <span class="scene-label">Pets</span>
+  </a>
+  <a href="#" class="scene-btn active" data-tab="fight">
+    <span class="scene-icon">⚔</span>
+    <span class="scene-label">Fight</span>
+  </a>
+  <a href="#" class="scene-btn" data-tab="clan">
+    <span class="scene-icon">🛡</span>
+    <span class="scene-label">Clan</span>
+  </a>
+  <a href="#" class="scene-btn" data-tab="worldboss">
     <span class="scene-icon">☠</span>
     <span class="scene-label">World Boss</span>
   </a>
 </nav>
 
-<span id="version">α v0.0.1</span>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="auth-guard.js"></script>
 <script src="main.js"></script>
+<script src="tabs.js"></script>
+<script src="chat.js"></script>
 </body>
 </html>

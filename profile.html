@@ -3,24 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>World Boss — Idle Boss RPG</title>
+<title>Profile — Idle Boss RPG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <div id="ambient-bg">
-  <div class="ember" style="--x:10%;--delay:0s;--dur:4s"></div>
-  <div class="ember" style="--x:20%;--delay:0.8s;--dur:6s"></div>
-  <div class="ember" style="--x:35%;--delay:2s;--dur:5s"></div>
-  <div class="ember" style="--x:55%;--delay:0.3s;--dur:7s"></div>
-  <div class="ember" style="--x:70%;--delay:1.5s;--dur:4s"></div>
-  <div class="ember" style="--x:85%;--delay:3s;--dur:6s"></div>
-  <div class="ember" style="--x:95%;--delay:1s;--dur:5s"></div>
+  <div class="ember" style="--x:10%;--delay:0s;--dur:6s"></div>
+  <div class="ember" style="--x:30%;--delay:1.5s;--dur:8s"></div>
+  <div class="ember" style="--x:55%;--delay:3s;--dur:5s"></div>
+  <div class="ember" style="--x:80%;--delay:2s;--dur:7s"></div>
 </div>
 
-<!-- Player bar (top) -->
 <div id="player-bar">
   <div id="player-bar-left">
     <img id="player-avatar" src="" alt="" style="display:none;">
@@ -31,17 +26,16 @@
 
 <div id="game-wrap">
   <div class="panel" style="text-align:center;padding:40px 20px;margin-top:20px;">
-    <div style="font-size:48px;margin-bottom:16px;filter:drop-shadow(0 0 16px rgba(200,30,20,0.6));">☠</div>
-    <div style="font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--red-bright);letter-spacing:2px;margin-bottom:10px;">World Boss</div>
+    <div style="font-size:48px;margin-bottom:16px;filter:drop-shadow(0 0 16px #c060c0);">👤</div>
+    <div style="font-family:'Cinzel Decorative',serif;font-size:18px;color:#c060c0;letter-spacing:2px;margin-bottom:10px;">Profile</div>
     <div style="font-family:'Crimson Text',serif;font-size:15px;color:var(--text-dim);font-style:italic;">Coming soon...</div>
   </div>
 </div>
 
-<!-- ══ BOTTOM SCENE NAV ══ -->
 <nav id="scene-nav">
-  <a href="profile.html" class="scene-btn">
-    <span class="scene-icon">👤</span>
-    <span class="scene-label">Profile</span>
+  <a href="index.html" class="scene-btn">
+    <span class="scene-icon">⚔</span>
+    <span class="scene-label">Fight</span>
   </a>
   <a href="upgrades.html" class="scene-btn">
     <span class="scene-icon">⬆</span>
@@ -51,17 +45,13 @@
     <span class="scene-icon">🐾</span>
     <span class="scene-label">Pets</span>
   </a>
-  <a href="index.html" class="scene-btn">
-    <span class="scene-icon">⚔</span>
-    <span class="scene-label">Fight</span>
-  </a>
   <a href="clan.html" class="scene-btn">
     <span class="scene-icon">🛡</span>
     <span class="scene-label">Clan</span>
   </a>
-  <a href="worldboss.html" class="scene-btn active">
-    <span class="scene-icon">☠</span>
-    <span class="scene-label">World Boss</span>
+  <a href="profile.html" class="scene-btn active">
+    <span class="scene-icon">👤</span>
+    <span class="scene-label">Profile</span>
   </a>
 </nav>
 

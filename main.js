@@ -12,19 +12,33 @@ document.addEventListener("DOMContentLoaded", function() {
   // ==========================
   // DOM
   // ==========================
-  const bossFill = document.getElementById("boss-hp-fill");
-  const bossText = document.getElementById("boss-hp-text");
-  const bossName = document.getElementById("boss-name");
-  const dpstext = document.getElementById("dpstext");
-  const shardtext = document.getElementById("shardtext");
+  const bossFill    = document.getElementById("boss-hp-fill");
+  const bossText    = document.getElementById("boss-hp-text");
+  const bossName    = document.getElementById("boss-name");
+  const dpstext     = document.getElementById("dpstext");
+  const shardtext   = document.getElementById("shardtext");
   const inventoryEl = document.getElementById("inventory");
-  const lootPreviewEl = document.getElementById("loot-preview");
-  const stageNumEl = document.getElementById("stage-num");
-  const bossLootListEl = document.getElementById("boss-loot-list");
-  const stagePrev = document.getElementById("stage-prev");
-  const stageNext = document.getElementById("stage-next");
+  const stagePrev   = document.getElementById("stage-prev");
+  const stageNext   = document.getElementById("stage-next");
   const resetCheckbox = document.getElementById("enable-reset");
-  const versionEl = document.getElementById("version");
+  const versionEl = document.getElementById("version") || document.createElement("span");
+
+  // EXP / Level
+  const expFill        = document.getElementById("exp-bar-fill");
+  const expCurrentEl   = document.getElementById("exp-current");
+  const expNeededEl    = document.getElementById("exp-needed");
+  const playerLevelEl  = document.getElementById("player-level");
+  const playerNameEl   = document.getElementById("player-name-display");
+  const playerAvatarEl = document.getElementById("player-avatar");
+
+  // Fill player name + avatar from login
+  const playerName  = localStorage.getItem("playerName") || "Warrior";
+  const playerPhoto = localStorage.getItem("playerPhoto") || "";
+  if (playerNameEl) playerNameEl.textContent = playerName;
+  if (playerAvatarEl && playerPhoto) {
+    playerAvatarEl.src = playerPhoto;
+    playerAvatarEl.style.display = "block";
+  }
 
 const dpsPerShard = 10;
 
@@ -139,8 +153,6 @@ function showPrestigeModal(type, reward = 0, multiplier = "1.00") {
       soulShards += reward;
 
       stage = 1;
-      inventory = [];
-      bossLooted = {};
       maxStageReached = 1;
       bonusDps = 0;
 
@@ -188,19 +200,17 @@ function showPrestigeModal(type, reward = 0, multiplier = "1.00") {
 // STAGE NAVIGATION
 // ==========================
 
-stagePrev.onclick = () => {
+stagePrev.addEventListener("click", () => {
+  if (stagePrev.classList.contains("disabled")) return;
   const next = getNextAvailableStage(-1);
   if (next !== null) { stage = next; spawnBoss(); }
-  stagePrev.blur();
-};
-stagePrev.addEventListener("touchend", () => setTimeout(() => stagePrev.blur(), 0));
+});
 
-stageNext.onclick = () => {
+stageNext.addEventListener("click", () => {
+  if (stageNext.classList.contains("disabled")) return;
   const next = getNextAvailableStage(1);
   if (next !== null) { stage = next; spawnBoss(); }
-  stageNext.blur();
-};
-stageNext.addEventListener("touchend", () => setTimeout(() => stageNext.blur(), 0));
+});
 
   // ==========================
   // GAME STATE
@@ -213,522 +223,259 @@ stageNext.addEventListener("touchend", () => setTimeout(() => stageNext.blur(), 
   let bonusDps = 0;
   let dps = 1;
 
-  let inventory = [];
-  let bossLooted = {};
   let maxStageReached = 1;
   let soulShards = 0;
-  const SOUL_DPS_BONUS = 0.10; // 10%
+  const SOUL_DPS_BONUS = 0.10;
+
+  // EXP / Level
+  let playerLevel = 1;
+  let playerExp   = 0;
+
+  // Gold
+  let gold = 0;
+  let totalBossKills = 0;
 
   let lastTick = Date.now();
-  
-  // ==========================
-// DEV MODE
-// ==========================
 
-let devMode = false;
-let tapCount = 0;
-let tapTimer = null;
-const TAP_THRESHOLD = 20;
-const TAP_TIME = 4000;
-
-const DEV_DEVICE_HASHES = [
-  "dev_43658a99",
-  "dev_77e84e93"
-];
-
-function getDeviceHash() {
-  const raw = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width + "x" + screen.height,
-    screen.colorDepth,
-    navigator.platform
-  ].join("|");
-
-  let hash = 0;
-  for (let i = 0; i < raw.length; i++) {
-    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
-    hash |= 0;
-  }
-
-  return "dev_" + Math.abs(hash).toString(16);
-}
-
-versionEl.addEventListener("click", () => {
-
-  tapCount++;
-
-  if (tapTimer) clearTimeout(tapTimer);
-  tapTimer = setTimeout(() => tapCount = 0, TAP_TIME);
-
-  if (tapCount >= TAP_THRESHOLD) {
-
-    tapCount = 0;
-
-    const deviceHash = getDeviceHash();
-
-    if (!DEV_DEVICE_HASHES.includes(deviceHash)) {
-      alert("DEV HASH:\n" + deviceHash);
-      console.warn("DEV HASH:", deviceHash);
-      return;
-    }
-
-    devMode = !devMode;
-
-    if (devMode) {
-      createDevOverlay();
-      document.getElementById("dev-overlay").style.display = "block";
-    } else {
-      const o = document.getElementById("dev-overlay");
-      if (o) o.style.display = "none";
-    }
-
-    alert("DEV MODE " + (devMode ? "ON" : "OFF"));
-  }
-});
-
-function createDevOverlay() {
-
-  if (document.getElementById("dev-overlay")) return;
-
-  const div = document.createElement("div");
-  div.id = "dev-overlay";
-  div.style = `
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background: rgba(0,0,0,0.9);
-    color: #0f0;
-    padding: 10px;
-    z-index: 99999;
-    font-size: 12px;
-    border-radius: 5px;
-  `;
-
-  div.innerHTML = `
-    <b>DEV MODE</b><br>
-    <button id="dev-add-dps">+100 DPS</button><br>
-    <button id="dev-reduce-dps">-100 DPS</button><br>
-    <button id="dev-kill-boss">Boss Kill</button><br>
-    <button id="dev-loot-all">Loot All</button><br>
-    <button id="dev-reset-save">RESET SAVE</button>
-  `;
-
-  document.body.appendChild(div);
-
-  // +DPS
-  document.getElementById("dev-add-dps").onclick = () => {
-    bonusDps += 100;
-    updateDps();
+  // Expose live state for tabs.js
+  window.gameState = {
+    get playerLevel()     { return playerLevel; },
+    get playerExp()       { return playerExp; },
+    get gold()            { return gold; },
+    get maxStageReached() { return maxStageReached; },
+    get dps()             { return dps; },
+    get totalBossKills()  { return totalBossKills; },
+    expForLevel,
   };
-
-  // -DPS
-  document.getElementById("dev-reduce-dps").onclick = () => {
-    bonusDps = Math.max(0, bonusDps - 100);
-    updateDps();
-  };
-
-  // Boss Kill
-  document.getElementById("dev-kill-boss").onclick = () => {
-    bossHp = 0;
-    bossDefeated();
-  };
-
-  // Loot All
-  document.getElementById("dev-loot-all").onclick = () => {
-
-    if (!bossLooted[stage]) bossLooted[stage] = {};
-
-    cardPool.forEach(card => {
-      if (isCardAvailableForStage(card, stage)) {
-        addCardToInventory(card);
-        bossLooted[stage][card.rarity] = true;
-      }
-    });
-
-    renderLootPreview();
-    renderBossLootList();
-  };
-
-  // Reset Save
-  document.getElementById("dev-reset-save").onclick = () => {
-
-    localStorage.removeItem("idleGameSave");
-
-    stage = 1;
-    bossLooted = {};
-    inventory = [];
-    maxStageReached = 1;
-    bonusDps = 0;
-    soulShards = 0;
-
-    updateDps();
-    renderInventory();
-    spawnBoss();
-
-    alert("SAVE RESET");
-  };
-}
 
   // ==========================
-  // CARDS
+  // DEV MODE
   // ==========================
-  const cardPool = [
-    { id: 1, name: "stick", cdps: 1, chance: 1, rarity: "common" },
-    { id: 2, name: "sword", cdps: 5, chance: 0.60, rarity: "rare", minStage: 10 },
-    { id: 3, name: "gun", cdps: 20, chance: 0.30, rarity: "epic", minStage: 20},
-    { id: 4, name: "twin blade", cdps: 100, chance: 0.1, rarity: "legendary", minStage: 30 },
-    { id: 100, name: "v0.0.1 alpha sword", cdps: 1000, chance: 0.025, rarity: "eventdrop", specialStage: [30, 40, 50, 60, 70, 80, 90, 100] }
+  let devMode = false;
+  let tapCount = 0;
+  let tapTimer = null;
+  const TAP_THRESHOLD = 20;
+  const TAP_TIME = 4000;
+
+  const DEV_DEVICE_HASHES = [
+    "dev_43658a99",
+    "dev_77e84e93"
   ];
 
+  function getDeviceHash() {
+    const raw = [
+      navigator.userAgent, navigator.language,
+      screen.width + "x" + screen.height,
+      screen.colorDepth, navigator.platform
+    ].join("|");
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+      hash |= 0;
+    }
+    return "dev_" + Math.abs(hash).toString(16);
+  }
+
+  versionEl.addEventListener("click", () => {
+    tapCount++;
+    if (tapTimer) clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => tapCount = 0, TAP_TIME);
+
+    if (tapCount >= TAP_THRESHOLD) {
+      tapCount = 0;
+      const deviceHash = getDeviceHash();
+      if (!DEV_DEVICE_HASHES.includes(deviceHash)) {
+        alert("DEV HASH:\n" + deviceHash);
+        return;
+      }
+      devMode = !devMode;
+      if (devMode) {
+        createDevOverlay();
+        document.getElementById("dev-overlay").style.display = "block";
+      } else {
+        const o = document.getElementById("dev-overlay");
+        if (o) o.style.display = "none";
+      }
+      alert("DEV MODE " + (devMode ? "ON" : "OFF"));
+    }
+  });
+
+  function createDevOverlay() {
+    if (document.getElementById("dev-overlay")) return;
+    const div = document.createElement("div");
+    div.id = "dev-overlay";
+    div.style = `
+      position:fixed;top:10px;left:10px;
+      background:rgba(0,0,0,0.9);color:#0f0;
+      padding:10px;z-index:99999;font-size:12px;border-radius:5px;
+    `;
+    div.innerHTML = `
+      <b>DEV MODE</b><br>
+      <button id="dev-add-dps">+100 DPS</button><br>
+      <button id="dev-reduce-dps">-100 DPS</button><br>
+      <button id="dev-kill-boss">Boss Kill</button><br>
+      <button id="dev-reset-save">RESET SAVE</button>
+    `;
+    document.body.appendChild(div);
+
+    document.getElementById("dev-add-dps").onclick = () => { bonusDps += 100; updateDps(); };
+    document.getElementById("dev-reduce-dps").onclick = () => { bonusDps = Math.max(0, bonusDps - 100); updateDps(); };
+    document.getElementById("dev-kill-boss").onclick = () => { bossHp = 0; bossDefeated(); };
+    document.getElementById("dev-reset-save").onclick = () => {
+      localStorage.removeItem("idleGameSave");
+      stage = 1; maxStageReached = 1; bonusDps = 0; soulShards = 0;
+      playerLevel = 1; playerExp = 0; gold = 0; totalBossKills = 0;
+      updateDps(); updateExpUI(); updateGoldUI(); renderInventory(); spawnBoss();
+      alert("SAVE RESET");
+    };
+  }
+
   // ==========================
-// DPS SYSTEM
-// ==========================
-function calculateDps() {
-  const cardDps = inventory.reduce((total, item) => {
-    const cardData = cardPool.find(c => c.id === item.id);
-    if (!cardData) return total;
-    return total + cardData.cdps * item.count;
-  }, 0);
+  // DPS SYSTEM
+  // ==========================
+  function calculateDps() {
+    const baseTotal = baseDps + bonusDps;
+    const prestigeMultiplier = FEATURES.PRESTIGE
+      ? 1 + (soulShards * SOUL_DPS_BONUS)
+      : 1;
+    return baseTotal * prestigeMultiplier;
+  }
 
-  const baseTotal = baseDps + bonusDps + cardDps;
+  function updateDps() {
+    dps = calculateDps();
+    dpstext.textContent = dps.toFixed(1);
+    if (shardtext) shardtext.textContent = Math.floor(soulShards);
+  }
 
-  const prestigeMultiplier = FEATURES.PRESTIGE
-    ? 1 + (soulShards * SOUL_DPS_BONUS)
-    : 1;
-
-  return baseTotal * prestigeMultiplier;
-}
-
-function updateDps() {
-  dps = calculateDps();
-  dpstext.textContent = dps.toFixed(1);
-  if (shardtext) shardtext.textContent = Math.floor(soulShards);
-}
-
-function updateShardDisplay() {
-  if (shardtext) shardtext.textContent = Math.floor(soulShards);
-}
+  function updateShardDisplay() {
+    if (shardtext) shardtext.textContent = Math.floor(soulShards);
+  }
 
   // ==========================
   // UTIL
   // ==========================
   function calculatePrestigeReward() {
-  if (maxStageReached < 50) return 0;
-  return Math.floor(Math.pow(maxStageReached - 40, 1.2) / 5);
-}
-
-
-  function getAllRarities() {
-    return [...new Set(cardPool.map(c => c.rarity))];
+    if (maxStageReached < 50) return 0;
+    return Math.floor(Math.pow(maxStageReached - 40, 1.2) / 5);
   }
 
-  function isCardAvailableForStage(card, stageNumber) {
-
-    if (card.specialStage) {
-      if (Array.isArray(card.specialStage)) {
-        return card.specialStage.includes(stageNumber);
-      }
-      return card.specialStage === stageNumber;
-    }
-
-    if (card.minStage) {
-      return stageNumber >= card.minStage;
-    }
-
-    return true;
+  function getNextAvailableStage(direction) {
+    const newStage = stage + direction;
+    if (newStage < 1 || newStage > maxStageReached) return null;
+    return newStage;
   }
-  
-  function isBossFullyLooted(stageNumber) {
-
-  const loot = bossLooted[stageNumber] || {};
-
-  const availableCards = cardPool.filter(c =>
-    isCardAvailableForStage(c, stageNumber)
-  );
-
-  if (availableCards.length === 0) return false;
-
-  return availableCards.every(card =>
-    loot[card.rarity]
-  );
-}
-
-function getNextAvailableStage(direction) {
-  let newStage = stage;
-
-  while (true) {
-    newStage += direction;
-
-    // Check bounds
-    if (newStage < 1 || newStage > maxStageReached) {
-      return null; // KEIN anderer Boss gefunden
-    }
-
-    // Nur Boss nehmen, der noch lootbaren Content hat
-    if (!isBossFullyLooted(newStage)) {
-      return newStage;
-    }
-  }
-}
 
   // ==========================
-  // INVENTORY
+  // EXP SYSTEM
   // ==========================
-  function addCardToInventory(card) {
-    const existing = inventory.find(c => c.id === card.id);
-    if (existing) existing.count++;
-    else inventory.push({ id: card.id, count: 1 });
-
-    updateDps();
-    renderInventory();
+  function expForLevel(lvl) {
+    return Math.floor(100 * Math.pow(lvl, 1.5));
   }
+
+  function expFromBoss(bossStage) {
+    return bossStage * 10;
+  }
+
+  function gainExp(amount) {
+    playerExp += amount;
+    let leveled = false;
+
+    while (playerExp >= expForLevel(playerLevel)) {
+      playerExp -= expForLevel(playerLevel);
+      playerLevel++;
+      leveled = true;
+    }
+
+    if (leveled) showLevelUpToast(playerLevel);
+    updateExpUI();
+  }
+
+  function updateExpUI() {
+    const needed = expForLevel(playerLevel);
+    const pct    = Math.min(100, (playerExp / needed) * 100);
+    if (expFill)      expFill.style.width      = pct + "%";
+    if (expCurrentEl) expCurrentEl.textContent = playerExp;
+    if (expNeededEl)  expNeededEl.textContent  = needed;
+    if (playerLevelEl) playerLevelEl.textContent = playerLevel;
+  }
+
+  function showLevelUpToast(newLevel) {
+    const toast = document.createElement("div");
+    toast.className = "levelup-toast";
+    toast.innerHTML = `✦ LEVEL UP! <span>LVL ${newLevel}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add("show"), 10);
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.remove(), 400);
+    }, 2200);
+  }
+
+  // ==========================
+  // GOLD SYSTEM
+  // ==========================
+  function goldFromBoss(bossStage) {
+    return Math.floor(bossStage * 5 * (1 + bossStage * 0.1));
+  }
+
+  function formatGold(n) {
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + "M";
+    if (n >= 1_000)     return (n / 1_000).toFixed(1) + "K";
+    return n.toString();
+  }
+
+  function gainGold(amount) {
+    gold += amount;
+    updateGoldUI();
+  }
+
+  function updateGoldUI() {
+    const el = document.getElementById("gold-amount");
+    if (el) el.textContent = formatGold(gold);
+  }
+
 
   function renderInventory() {
-  inventoryEl.innerHTML = "";
-
-  if (inventory.length === 0) {
-    inventoryEl.innerHTML = `<div class="empty-state">— inventory empty —</div>`;
-    return;
-  }
-
-  inventory.forEach(item => {
-    const cardData = cardPool.find(c => c.id === item.id);
-    if (!cardData) return;
-
-    const div = document.createElement("div");
-    div.classList.add("card", cardData.rarity);
-
-    div.textContent =
-      `${item.count}x ${cardData.name} (+${cardData.cdps} dps) = +${cardData.cdps * item.count} dps`;
-
-    inventoryEl.appendChild(div);
-  });
-}
-
-  // ==========================
-  // LOOT
-  // ==========================
-  function dropCard() {
-    if (!bossLooted[stage]) bossLooted[stage] = {};
-
-    const rarities = getAllRarities();
-
-    rarities.forEach(rarity => {
-
-      if (bossLooted[stage][rarity]) return;
-
-      const pool = cardPool.filter(c =>
-        c.rarity === rarity &&
-        isCardAvailableForStage(c, stage)
-      );
-
-      if (pool.length === 0) return;
-
-      const card = pool[Math.floor(Math.random() * pool.length)];
-
-      if (Math.random() < card.chance) {
-        addCardToInventory(card);
-        bossLooted[stage][rarity] = true;
-      }
-    });
-
-    renderLootPreview();
-    renderBossLootList();
-  }
-
-  // ==========================
-  // LOOT PREVIEW
-  // ==========================
-  function renderLootPreview() {
-
-    lootPreviewEl.innerHTML = "";
-
-    let any = false;
-
-    cardPool.forEach(card => {
-
-      if (!isCardAvailableForStage(card, stage)) return;
-      if (bossLooted[stage] && bossLooted[stage][card.rarity]) return;
-
-      const div = document.createElement("div");
-      div.classList.add("card", card.rarity);
-      div.textContent = `${card.name} (+${card.cdps} dps)`;
-
-      lootPreviewEl.appendChild(div);
-      any = true;
-    });
-
-    if (!any) {
-      lootPreviewEl.innerHTML = `<div class="empty-state">— no loot remaining —</div>`;
-    }
-  }
-
-  // ==========================
-  // DROP MODAL
-  // ==========================
-  function openDropChanceModal() {
-
-    if (document.getElementById("drop-chance-modal")) return;
-
-    const modal = document.createElement("div");
-    modal.id = "drop-chance-modal";
-
-    const box = document.createElement("div");
-    box.className = "modal-box";
-
-    box.innerHTML = `
-      <div class="modal-title">⚔ Drop Chances ⚔</div>
-      ${cardPool.map(card => {
-
-        let dropText = "always available";
-
-        if (card.specialStage) {
-          dropText = `Boss ${card.specialStage}`;
-        } else if (card.minStage) {
-          dropText = `from Boss ${card.minStage}`;
-        }
-
-        return `
-          <div class="card ${card.rarity}" style="margin-bottom:6px;">
-            ${card.rarity.toUpperCase()} &mdash; ${card.name}
-            <br>
-            <small style="opacity:0.75;font-family:'Crimson Text',serif;font-weight:400;font-size:12px;">
-              Chance: ${(card.chance * 100).toFixed(3)}% &bull; ${dropText}
-            </small>
-          </div>
-        `;
-      }).join("")}
-      <button class="close-modal-btn">Close</button>
-    `;
-
-    modal.appendChild(box);
-    document.body.appendChild(modal);
-
-    box.querySelector(".close-modal-btn").onclick = () => modal.remove();
-    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    inventoryEl.innerHTML = `<div class="empty-state">— no items yet —</div>`;
   }
 
   // ==========================
   // BOSS
   // ==========================
   function bossDefeated() {
-
-  dropCard();
-
-  const wasMaxStage = stage === maxStageReached;
-
-  if (!resetCheckbox.checked) {
-    stage++;
+    gainExp(expFromBoss(stage));
+    gainGold(goldFromBoss(stage));
+    totalBossKills++;
+    const wasMaxStage = stage === maxStageReached;
+    if (!resetCheckbox.checked) stage++;
+    if (wasMaxStage) maxStageReached++;
+    spawnBoss();
+    saveGame();
   }
-
-  // 🔥 If we just defeated the highest boss,
-  // maxStageReached should ALWAYS be incremented
-  if (wasMaxStage) {
-    maxStageReached++;
-  }
-
-  spawnBoss();
-  saveGame();
-}
 
   function spawnBoss() {
-    if (isBossFullyLooted(stage)) {
-  stage = getNextAvailableStage(1);
-}
-
     if (stage < 20) {
-  // Phase 1 (1–19)
-  bossMaxHp = Math.floor(
-    10 * Math.pow(1.25, stage - 1)
-  );
-
+  bossMaxHp = Math.floor(10 * Math.pow(1.25, stage - 1));
 } else if (stage < 40) {
-  // Phase 2 (20–39)
-  bossMaxHp = Math.floor(
-    10 *
-    Math.pow(1.25, 19) *
-    Math.pow(1.12, stage - 19)
-  );
-
+  bossMaxHp = Math.floor(10 * Math.pow(1.25, 19) * Math.pow(1.12, stage - 19));
 } else if (stage < 60) {
-  // Phase 3 (40–59)
-  bossMaxHp = Math.floor(
-    10 *
-    Math.pow(1.25, 19) *
-    Math.pow(1.12, 20) *
-    Math.pow(1.10, stage - 39)
-  );
-
+  bossMaxHp = Math.floor(10 * Math.pow(1.25, 19) * Math.pow(1.12, 20) * Math.pow(1.10, stage - 39));
 } else {
-  // Phase 4 (60+)
-  bossMaxHp = Math.floor(
-    10 *
-    Math.pow(1.25, 19) *
-    Math.pow(1.12, 20) *
-    Math.pow(1.10, 20) *
-    Math.pow(1.05, stage - 59)
-  );
+  bossMaxHp = Math.floor(10 * Math.pow(1.25, 19) * Math.pow(1.12, 20) * Math.pow(1.10, 20) * Math.pow(1.05, stage - 59));
 }
 
     bossHp = bossMaxHp;
     bossName.textContent = `Boss #${stage}`;
 
     updateBossUI();
-    renderLootPreview();
-    renderBossLootList();
-    stagePrev.disabled = stage <= 1;
-    stageNext.disabled = stage >= maxStageReached;
-    console.log(stage, bossMaxHp);
+    stagePrev.classList.toggle("disabled", stage <= 1);
+    stageNext.classList.toggle("disabled", stage >= maxStageReached);
   }
 
   function updateBossUI() {
     const percent = (bossHp / bossMaxHp) * 100;
     bossFill.style.width = percent + "%";
     bossText.textContent = `${Math.ceil(bossHp)} / ${bossMaxHp}`;
-  }
-
-  // ==========================
-  // BOSS LIST
-  // ==========================
-  function renderBossLootList() {
-
-    bossLootListEl.innerHTML = "";
-    let anyVisible = false;
-
-    for (let i = 1; i <= maxStageReached; i++) {
-
-      const loot = bossLooted[i] || {};
-      const availableCards = cardPool.filter(c =>
-        isCardAvailableForStage(c, i)
-      );
-
-      if (availableCards.length === 0) continue;
-
-      if (isBossFullyLooted(i)) continue;
-
-      const row = document.createElement("div");
-      row.textContent = `Boss ${i}: `;
-
-      getAllRarities().forEach(rarity => {
-
-        const exists = availableCards.some(c => c.rarity === rarity);
-        if (!exists) return;
-
-        const span = document.createElement("span");
-        span.classList.add("card", rarity);
-        span.textContent = loot[rarity] ? "✅" : rarity.toUpperCase();
-
-        row.appendChild(span);
-      });
-
-      bossLootListEl.appendChild(row);
-      anyVisible = true;
-    }
-
-    if (!anyVisible) {
-      bossLootListEl.innerHTML = `<div class="empty-state">— all boss loot collected —</div>`;
-    }
   }
 
   // ==========================
@@ -754,57 +501,47 @@ function getNextAvailableStage(direction) {
   // SAVE / LOAD
   // ==========================
   function saveGame() {
-  const saveData = {
-    saveVersion: 1,
-    stage: stage,
-    bossHp: bossHp,
-    bossMaxHp: bossMaxHp,
-    inventory: inventory,
-    bossLooted: bossLooted,
-    maxStageReached: maxStageReached,
-    soulShards: soulShards ?? 0
-  };
-
-  console.log("Saving SoulShards:", soulShards);
-
-  localStorage.setItem("idleGameSave", JSON.stringify(saveData));
-}
-
-  function loadGame() {
-    console.log("Loaded SoulShards:",soulShards);
-  const raw = localStorage.getItem("idleGameSave");
-  if (!raw) return;
-
-  const data = JSON.parse(raw);
-
-  // Check Save-Version
-  const saveVersion = data.saveVersion ?? 1; // alte saves default 1
-  if (saveVersion > 1) {
-    localStorage.removeItem("idleGameSave");
-    return;
+    const saveData = {
+      saveVersion: 2,
+      stage, bossHp, bossMaxHp, maxStageReached,
+      soulShards: soulShards ?? 0,
+      playerLevel, playerExp, gold, totalBossKills
+    };
+    localStorage.setItem("idleGameSave", JSON.stringify(saveData));
   }
 
-  stage = data.stage ?? stage;
-  bossHp = data.bossHp ?? bossHp;
-  bossMaxHp = data.bossMaxHp ?? bossMaxHp;
-  inventory = data.inventory ?? [];
-  bossLooted = data.bossLooted ?? {};
-  maxStageReached = data.maxStageReached ?? stage;
-  soulShards = data.soulShards ?? 0;
-  console.log("SoulShards after load:", soulShards);
-  updateDps();
-  updateShardDisplay();
-  renderInventory();
-}
+  function loadGame() {
+    const raw = localStorage.getItem("idleGameSave");
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if ((data.saveVersion ?? 1) < 2) {
+      localStorage.removeItem("idleGameSave");
+      return;
+    }
+    stage           = data.stage           ?? 1;
+    bossHp          = data.bossHp          ?? 0;
+    bossMaxHp       = data.bossMaxHp       ?? 0;
+    maxStageReached = data.maxStageReached  ?? 1;
+    soulShards      = data.soulShards      ?? 0;
+    playerLevel     = data.playerLevel     ?? 1;
+    playerExp       = data.playerExp       ?? 0;
+    gold            = data.gold            ?? 0;
+    totalBossKills  = data.totalBossKills  ?? 0;
+    updateDps();
+    updateShardDisplay();
+    updateExpUI();
+    updateGoldUI();
+    renderInventory();
+  }
 
   // ==========================
   // START
   // ==========================
-  document.getElementById("drop-info-btn").addEventListener("click", openDropChanceModal);
-
   loadGame();
   spawnBoss();
   updateDps();
+  updateExpUI();
+  updateGoldUI();
   idleLoop();
 
   setInterval(saveGame, 5000);

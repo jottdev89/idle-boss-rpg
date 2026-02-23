@@ -17,33 +17,18 @@
 
   // Show player bar once DOM is ready
   document.addEventListener("DOMContentLoaded", () => {
-    const nameEl   = document.getElementById("player-bar-name");
-    const avatarEl = document.getElementById("player-avatar");
     const logoutEl = document.getElementById("logout-btn");
-
-    if (nameEl) nameEl.textContent = playerName;
-
-    const photo = localStorage.getItem("playerPhoto");
-    if (avatarEl && photo) {
-      avatarEl.src          = photo;
-      avatarEl.style.display = "block";
-    }
 
     if (logoutEl) {
       logoutEl.addEventListener("click", () => {
         const authType = localStorage.getItem("authType");
-
-        // Sign out of Firebase if Google user
         if (authType === "google" && typeof firebase !== "undefined") {
           try { firebase.auth().signOut(); } catch {}
         }
-
-        // Clear session
         localStorage.removeItem("playerName");
         localStorage.removeItem("playerUID");
         localStorage.removeItem("authType");
         localStorage.removeItem("playerPhoto");
-
         window.location.href = "login.html";
       });
     }
