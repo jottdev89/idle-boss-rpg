@@ -324,8 +324,7 @@ stageNext.addEventListener("click", () => {
     document.getElementById("dev-reset-save").onclick = () => {
       localStorage.removeItem("idleGameSave");
       stage = 1; maxStageReached = 1; bonusDps = 0; soulShards = 0;
-      playerLevel = 1; playerExp = 0; gold = 0; totalBossKills = 0;
-      updateDps(); updateExpUI(); updateGoldUI(); renderInventory(); spawnBoss();
+      playerLevel = 1; playerExp = 0; gold = 0; totalBossKills = 0;      updateDps(); updateExpUI(); updateGoldUI(); renderInventory(); spawnBoss();
       alert("SAVE RESET");
     };
   }
@@ -379,14 +378,20 @@ stageNext.addEventListener("click", () => {
   function gainExp(amount) {
     playerExp += amount;
     let leveled = false;
+    let levelsGained = 0;
 
     while (playerExp >= expForLevel(playerLevel)) {
       playerExp -= expForLevel(playerLevel);
       playerLevel++;
+      levelsGained++;
       leveled = true;
     }
 
-    if (leveled) showLevelUpToast(playerLevel);
+    if (leveled) {
+      bonusDps += levelsGained; // +1 DPS pro Level
+      updateDps();
+      showLevelUpToast(playerLevel);
+    }
     updateExpUI();
   }
 
@@ -505,7 +510,8 @@ stageNext.addEventListener("click", () => {
       saveVersion: 2,
       stage, bossHp, bossMaxHp, maxStageReached,
       soulShards: soulShards ?? 0,
-      playerLevel, playerExp, gold, totalBossKills
+      playerLevel, playerExp, gold, totalBossKills,
+      bonusDps
     };
     localStorage.setItem("idleGameSave", JSON.stringify(saveData));
   }
@@ -527,6 +533,8 @@ stageNext.addEventListener("click", () => {
     playerExp       = data.playerExp       ?? 0;
     gold            = data.gold            ?? 0;
     totalBossKills  = data.totalBossKills  ?? 0;
+    // bonusDps gespeichert nehmen, Fallback: level-1 (für alte Saves ohne bonusDps)
+    bonusDps        = data.bonusDps        ?? (playerLevel - 1);
     updateDps();
     updateShardDisplay();
     updateExpUI();
