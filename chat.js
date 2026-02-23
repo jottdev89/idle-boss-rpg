@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const MAX_MESSAGES  = 60;
   const RATE_LIMIT_MS = 2000;
+  const INIT_TIMEOUT  = 8000; // 8s dann Fehlermeldung
 
   const playerName = localStorage.getItem("playerName") || "Warrior";
   const playerUID  = localStorage.getItem("playerUID")  || "guest_" + Math.random().toString(36).slice(2);
@@ -26,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let lastSent    = 0;
   let unreadCount = 0;
   let dbReady     = false;
-  let chatRef, presRef;
+  let chatRef;
 
   // ── TOGGLE ───────────────────────────────────────────────
   function openChat() {
@@ -37,7 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
     titleEl.textContent = "💬 Global Chat";
     setTimeout(() => {
       messagesEl.scrollTop = messagesEl.scrollHeight;
-      inputEl.focus();
+      // Kein inputEl.focus() — verhindert Tastatur auf Mobile
     }, 60);
   }
 
@@ -47,54 +48,106 @@ document.addEventListener("DOMContentLoaded", function () {
     toggleBtn.textContent = "▲";
   }
 
-  // Klick auf Header ODER Toggle-Button klappt auf/zu
   document.getElementById("chat-header").addEventListener("click", function () {
     isOpen ? closeChat() : openChat();
   });
 
   // ── FIREBASE INIT ────────────────────────────────────────
+  let initAttempts = 0;
+  const initStart  = Date.now();
+
   function initFirebase() {
+    initAttempts++;
+
+    // Timeout
+    if (Date.now() - initStart > INIT_TIMEOUT) {
+      setStatus("⚠ Chat nicht verfügbar — Firebase Database prüfen", "#ff6060");
+      console.error("[Chat] Firebase Database init timeout. Mögliche Ursachen:\n" +
+        "1. databaseURL fehlt in firebase-config.js\n" +
+        "2. Realtime Database nicht aktiviert in Firebase Console\n" +
+        "3. Database Rules verbieten Zugriff");
+      return;
+    }
+
+    // Firebase SDK noch nicht geladen
+    if (typeof firebase === "undefined") {
+      setTimeout(initFirebase, 300); return;
+    }
+
+    // Database SDK fehlt
+    if (typeof firebase.database === "undefined") {
+      setStatus("⚠ firebase-database-compat.js fehlt", "#ff6060");
+      console.error("[Chat] firebase.database ist undefined — firebase-database-compat.js nicht geladen?");
+      return;
+    }
+
+    // databaseURL fehlt in Config
+    let db;
     try {
-      if (typeof firebase === "undefined" || !firebase.database) {
-        setTimeout(initFirebase, 300);
-        return;
+      db = firebase.database();
+    } catch (e) {
+      setStatus("⚠ databaseURL fehlt in firebase-config.js", "#ff6060");
+      console.error("[Chat] firebase.database() Fehler:", e.message);
+      return;
+    }
+
+    // Test-Verbindung
+    db.ref(".info/connected").on("value", snap => {
+      if (snap.val() === true) {
+        if (!dbReady) {
+          dbReady = true;
+          setStatus(null);
+          setupChat(db);
+        }
+      } else {
+        if (dbReady) setStatus("⚠ Verbindung unterbrochen…", "#ffaa40");
+        else         setStatus("⏳ Verbinde…", "#888");
       }
+    });
+  }
 
-      const db = firebase.database();
-      chatRef  = db.ref("globalChat");
-      presRef  = db.ref("presence/" + playerUID);
-      dbReady  = true;
+  function setupChat(db) {
+    chatRef = db.ref("globalChat");
+    const presRef = db.ref("presence/" + playerUID);
 
-      // Presence
+    // Presence
+    try {
       presRef.set({ name: playerName, online: true, ts: Date.now() });
       presRef.onDisconnect().remove();
-
-      // Online-Zähler
       db.ref("presence").on("value", snap => {
-        if (onlineEl) onlineEl.textContent = (snap.numChildren() || 0) + " online";
+        if (onlineEl) onlineEl.textContent = snap.numChildren() + " online";
       });
+    } catch(e) { console.warn("[Chat] Presence Fehler:", e); }
 
-      // Nachrichten empfangen
-      let firstLoad = true;
-      chatRef.limitToLast(MAX_MESSAGES).on("child_added", snap => {
-        const msg = snap.val();
-        if (!msg || !msg.text) return;
-        appendMessage(msg, snap.key);
-        if (!firstLoad && !isOpen) {
-          unreadCount++;
-          titleEl.textContent = "💬 Global Chat (" + unreadCount + ")";
-        }
-      });
+    // Nachrichten empfangen
+    let firstLoad = true;
+    chatRef.limitToLast(MAX_MESSAGES).on("child_added", snap => {
+      const msg = snap.val();
+      if (!msg || !msg.text) return;
+      appendMessage(msg, snap.key);
+      if (!firstLoad && !isOpen) {
+        unreadCount++;
+        titleEl.textContent = "💬 Global Chat (" + unreadCount + ")";
+      }
+    });
 
-      // Nach erstem Batch scrollen
-      chatRef.limitToLast(MAX_MESSAGES).once("value", () => {
-        firstLoad = false;
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-      });
+    chatRef.limitToLast(MAX_MESSAGES).once("value", () => {
+      firstLoad = false;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+  }
 
-    } catch (e) {
-      console.warn("Chat Firebase init error:", e);
+  function setStatus(msg, color) {
+    let el = document.getElementById("chat-status");
+    if (!msg) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "chat-status";
+      el.style.cssText = "padding:8px 12px;font-family:var(--font-title);font-size:10px;letter-spacing:1px;text-align:center;";
+      messagesEl.prepend(el);
     }
+    el.style.color = color || "#888";
+    el.textContent = msg;
   }
 
   initFirebase();
@@ -103,7 +156,11 @@ document.addEventListener("DOMContentLoaded", function () {
   function sendMessage() {
     const text = inputEl.value.trim();
     if (!text) return;
-    if (!dbReady) { showError("Verbindung wird aufgebaut…"); return; }
+
+    if (!dbReady || !chatRef) {
+      showError("Keine Verbindung zur Datenbank");
+      return;
+    }
 
     const now = Date.now();
     if (now - lastSent < RATE_LIMIT_MS) {
@@ -113,6 +170,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     lastSent = now;
     inputEl.value = "";
+    inputEl.setAttribute("readonly", true);
+    inputEl.blur();
 
     const level = window.gameState?.playerLevel ?? 1;
 
@@ -122,9 +181,12 @@ document.addEventListener("DOMContentLoaded", function () {
       level: level,
       text:  text,
       ts:    firebase.database.ServerValue.TIMESTAMP
-    }).catch(e => showError("Senden fehlgeschlagen"));
+    }).catch(e => {
+      console.error("[Chat] Senden Fehler:", e);
+      showError("Senden fehlgeschlagen: " + e.message);
+    });
 
-    // Älteste Nachricht löschen wenn zu viele
+    // Älteste löschen wenn zu viele
     chatRef.once("value", snap => {
       if (snap.numChildren() > MAX_MESSAGES) {
         let oldest = null;
@@ -137,7 +199,15 @@ document.addEventListener("DOMContentLoaded", function () {
   sendBtn.addEventListener("click", sendMessage);
   inputEl.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
 
-  // ── RENDER MESSAGE ───────────────────────────────────────
+  // Tastatur auf Mobile nicht automatisch öffnen
+  // readonly bis User direkt draufklickt
+  inputEl.setAttribute("readonly", true);
+  inputEl.addEventListener("click", function () {
+    inputEl.removeAttribute("readonly");
+    inputEl.focus();
+  });
+
+  // ── RENDER ───────────────────────────────────────────────
   function appendMessage(msg, key) {
     if (document.getElementById("msg-" + key)) return;
 
@@ -148,43 +218,38 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const div = document.createElement("div");
     div.id        = "msg-" + key;
-    div.className = "chat-msg" + (isSelf ? " chat-msg-self" : "");
+    div.className = "chat-msg";
     div.innerHTML =
       '<div class="chat-msg-header">' +
         '<span class="chat-msg-name' + (isSelf ? " chat-msg-name-self" : "") + '">' + esc(msg.name) + '</span>' +
         '<span class="chat-msg-lvl">Lv.' + (msg.level ?? 1) + '</span>' +
         '<span class="chat-msg-time">' + time + '</span>' +
       '</div>' +
-      '<div class="chat-msg-text">' + esc(msg.text) + '</div>';
+      '<div class="chat-msg-text' + (isSelf ? " chat-msg-text-self" : "") + '">' + esc(msg.text) + '</div>';
 
     messagesEl.appendChild(div);
 
-    // DOM-Limit
-    while (messagesEl.children.length > MAX_MESSAGES) {
+    while (messagesEl.children.length > MAX_MESSAGES + 1) {
       messagesEl.removeChild(messagesEl.firstChild);
     }
 
-    // Auto-scroll wenn nah am Ende
     const nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
     if (nearBottom || isSelf) messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  // ── HELPERS ──────────────────────────────────────────────
   function showError(msg) {
     const el = document.createElement("div");
     el.className = "chat-error";
     el.textContent = msg;
     messagesEl.appendChild(el);
-    setTimeout(() => el.remove(), 2000);
+    setTimeout(() => el.remove(), 3000);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
   function esc(str) {
     return String(str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
 });
