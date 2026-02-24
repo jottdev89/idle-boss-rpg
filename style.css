@@ -828,8 +828,24 @@ body {
 }
 
 /* ============================================================
-   PLAYER BAR (top - jetzt leer, nur als Spacer)
+   BOSS CANVAS
    ============================================================ */
+#boss-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 8px 0 4px;
+  height: 180px;
+}
+
+#boss-canvas {
+  width: 220px;
+  height: 180px;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 0 12px rgba(160, 20, 10, 0.4));
+}
+
+
 #player-bar {
   display: none;
 }
@@ -1605,3 +1621,66 @@ a.scene-btn[href="worldboss.html"].active {
 
 /* Body padding anpassen damit Inhalt nicht unter Chat verschwindet */
 body { padding-bottom: calc(57px + 34px); } /* nav + chat-header */
+
+/* ============================================================
+   HIT SYSTEM
+   ============================================================ */
+#boss-canvas-wrap {
+  position: relative;
+}
+
+.hit-number {
+  position: absolute;
+  font-family: var(--font-title);
+  font-size: 20px;
+  font-weight: bold;
+  color: #ff4040;
+  text-shadow: 0 0 10px rgba(255,50,0,0.8), 0 2px 4px rgba(0,0,0,0.8);
+  pointer-events: none;
+  animation: hitFloat 0.9s ease-out forwards;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+@keyframes hitFloat {
+  0%   { opacity: 1;   transform: translateY(0)   scale(1.2); }
+  30%  { opacity: 1;   transform: translateY(-20px) scale(1); }
+  100% { opacity: 0;   transform: translateY(-50px) scale(0.8); }
+}
+
+.boss-hit-flash {
+  filter: brightness(3) saturate(0.5) drop-shadow(0 0 12px rgba(255,80,0,0.9)) !important;
+  transition: filter 0.05s !important;
+}
+
+/* ============================================================
+   DROP ANIMATIONEN (Gold / EXP)
+   ============================================================ */
+.drop-number {
+  position: absolute;
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: dropFloat 1.4s ease-out forwards;
+}
+
+.drop-gold {
+  color: #ffcc00;
+  text-shadow: 0 0 12px rgba(255,180,0,0.9), 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.drop-exp {
+  color: #c080ff;
+  text-shadow: 0 0 12px rgba(180,80,255,0.9), 0 2px 4px rgba(0,0,0,0.8);
+}
+
+@keyframes dropFloat {
+  0%   { opacity: 0;   transform: translateX(-50%) translateY(0)    scale(0.6); }
+  20%  { opacity: 1;   transform: translateX(-50%) translateY(-15px) scale(1.15); }
+  70%  { opacity: 1;   transform: translateX(-50%) translateY(-45px) scale(1); }
+  100% { opacity: 0;   transform: translateX(-50%) translateY(-75px) scale(0.8); }
+}

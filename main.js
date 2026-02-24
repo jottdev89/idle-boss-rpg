@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const bossFill    = document.getElementById("boss-hp-fill");
   const bossText    = document.getElementById("boss-hp-text");
   const bossName    = document.getElementById("boss-name");
-  const dpstext     = document.getElementById("dpstext");
+  const atktext     = document.getElementById("atktext");
   const shardtext   = document.getElementById("shardtext");
   const inventoryEl = document.getElementById("inventory");
   const stagePrev   = document.getElementById("stage-prev");
@@ -154,9 +154,9 @@ function showPrestigeModal(type, reward = 0, multiplier = "1.00") {
 
       stage = 1;
       maxStageReached = 1;
-      bonusDps = 0;
+      bonusAtk = 0;
 
-      updateDps();
+      updateAtk();
       updateShardDisplay();
       renderInventory();
       spawnBoss();
@@ -219,13 +219,13 @@ stageNext.addEventListener("click", () => {
   let bossMaxHp = 0;
   let bossHp = bossMaxHp;
 
-  let baseDps = 1;
-  let bonusDps = 0;
-  let dps = 1;
+  let baseAtk  = 1;
+  let bonusAtk = 0;
+  let atk      = 1;
 
   let maxStageReached = 1;
   let soulShards = 0;
-  const SOUL_DPS_BONUS = 0.10;
+  const SOUL_ATK_BONUS = 0.10;
 
   // EXP / Level
   let playerLevel = 1;
@@ -235,6 +235,11 @@ stageNext.addEventListener("click", () => {
   let gold = 0;
   let totalBossKills = 0;
 
+  // Hit-System
+  const HIT_INTERVAL = 3000;
+  let lastHitTime    = Date.now();
+  let isDying        = false; // Todesanimation läuft
+
   let lastTick = Date.now();
 
   // Expose live state for tabs.js
@@ -243,7 +248,7 @@ stageNext.addEventListener("click", () => {
     get playerExp()       { return playerExp; },
     get gold()            { return gold; },
     get maxStageReached() { return maxStageReached; },
-    get dps()             { return dps; },
+    get atk()             { return atk; },
     get totalBossKills()  { return totalBossKills; },
     expForLevel,
   };
@@ -311,38 +316,38 @@ stageNext.addEventListener("click", () => {
     `;
     div.innerHTML = `
       <b>DEV MODE</b><br>
-      <button id="dev-add-dps">+100 DPS</button><br>
-      <button id="dev-reduce-dps">-100 DPS</button><br>
+      <button id="dev-add-atk">+100 ATK</button><br>
+      <button id="dev-reduce-atk">-100 ATK</button><br>
       <button id="dev-kill-boss">Boss Kill</button><br>
       <button id="dev-reset-save">RESET SAVE</button>
     `;
     document.body.appendChild(div);
 
-    document.getElementById("dev-add-dps").onclick = () => { bonusDps += 100; updateDps(); };
-    document.getElementById("dev-reduce-dps").onclick = () => { bonusDps = Math.max(0, bonusDps - 100); updateDps(); };
+    document.getElementById("dev-add-atk").onclick = () => { bonusAtk += 100; updateAtk(); };
+    document.getElementById("dev-reduce-atk").onclick = () => { bonusAtk = Math.max(0, bonusAtk - 100); updateAtk(); };
     document.getElementById("dev-kill-boss").onclick = () => { bossHp = 0; bossDefeated(); };
     document.getElementById("dev-reset-save").onclick = () => {
       localStorage.removeItem("idleGameSave");
-      stage = 1; maxStageReached = 1; bonusDps = 0; soulShards = 0;
-      playerLevel = 1; playerExp = 0; gold = 0; totalBossKills = 0;      updateDps(); updateExpUI(); updateGoldUI(); renderInventory(); spawnBoss();
+      stage = 1; maxStageReached = 1; bonusAtk = 0; soulShards = 0;
+      playerLevel = 1; playerExp = 0; gold = 0; totalBossKills = 0;      updateAtk(); updateExpUI(); updateGoldUI(); renderInventory(); spawnBoss();
       alert("SAVE RESET");
     };
   }
 
   // ==========================
-  // DPS SYSTEM
+  // ATK SYSTEM
   // ==========================
-  function calculateDps() {
-    const baseTotal = baseDps + bonusDps;
+  function calculateAtk() {
+    const baseTotal = baseAtk + bonusAtk;
     const prestigeMultiplier = FEATURES.PRESTIGE
-      ? 1 + (soulShards * SOUL_DPS_BONUS)
+      ? 1 + (soulShards * SOUL_ATK_BONUS)
       : 1;
     return baseTotal * prestigeMultiplier;
   }
 
-  function updateDps() {
-    dps = calculateDps();
-    dpstext.textContent = dps.toFixed(1);
+  function updateAtk() {
+    atk = calculateAtk();
+    if (atktext) atktext.textContent = Math.floor(atk);
     if (shardtext) shardtext.textContent = Math.floor(soulShards);
   }
 
@@ -388,8 +393,8 @@ stageNext.addEventListener("click", () => {
     }
 
     if (leveled) {
-      bonusDps += levelsGained; // +1 DPS pro Level
-      updateDps();
+      bonusAtk += levelsGained; // +1 ATK pro Level
+      updateAtk();
       showLevelUpToast(playerLevel);
     }
     updateExpUI();
@@ -471,10 +476,14 @@ stageNext.addEventListener("click", () => {
 
     bossHp = bossMaxHp;
     bossName.textContent = `Boss #${stage}`;
+    lastHitTime = Date.now(); // Timer reset — nächster Hit in 3s
 
     updateBossUI();
     stagePrev.classList.toggle("disabled", stage <= 1);
     stageNext.classList.toggle("disabled", stage >= maxStageReached);
+
+    // Boss-Grafik zeichnen
+    if (typeof BossArt !== "undefined") BossArt.draw(stage);
   }
 
   function updateBossUI() {
@@ -484,22 +493,86 @@ stageNext.addEventListener("click", () => {
   }
 
   // ==========================
-  // LOOP
+  // LOOP — Hit alle 3 Sekunden
   // ==========================
   function idleLoop() {
-
     const now = Date.now();
-    const delta = (now - lastTick) / 1000;
     lastTick = now;
 
-    if (bossHp > 0) {
-      bossHp = Math.max(0, bossHp - dps * delta);
-    } else {
-      bossDefeated();
+    if (bossHp > 0 && !isDying) {
+      if (now - lastHitTime >= HIT_INTERVAL) {
+        lastHitTime = now;
+        doHit();
+      }
     }
 
-    updateBossUI();
     requestAnimationFrame(idleLoop);
+  }
+
+  function doHit() {
+    if (bossHp <= 0) return;
+
+    bossHp = Math.max(0, bossHp - atk);
+    updateBossUI();
+    showHitNumber(atk);
+    flashBossHit();
+
+    if (bossHp <= 0) {
+      const expGain  = expFromBoss(stage);
+      const goldGain = goldFromBoss(stage);
+      playDeathSequence(expGain, goldGain);
+    }
+  }
+
+  function playDeathSequence(expGain, goldGain) {
+    isDying = true;
+    if (typeof BossArt !== "undefined") BossArt.playDeath();
+
+    const wrap = document.getElementById("boss-canvas-wrap");
+    if (wrap) {
+      setTimeout(() => showDrops(wrap, expGain, goldGain), 300);
+    }
+
+    setTimeout(() => {
+      isDying = false;
+      bossDefeated();
+    }, 1600);
+  }
+
+  function showDrops(wrap, expGain, goldGain) {
+    // Gold Drop
+    spawnDrop(wrap, `+${formatGold(goldGain)} GOLD`, "drop-gold",  45 + Math.random() * 20);
+    // EXP Drop
+    spawnDrop(wrap, `+${expGain} EXP`,               "drop-exp",   25 + Math.random() * 20);
+  }
+
+  function spawnDrop(wrap, text, cls, leftPct) {
+    const el = document.createElement("div");
+    el.className = `drop-number ${cls}`;
+    el.textContent = text;
+    el.style.left = leftPct + "%";
+    el.style.top  = "50%";
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 1400);
+  }
+
+  function showHitNumber(damage) {
+    const wrap = document.getElementById("boss-canvas-wrap");
+    if (!wrap) return;
+    const el = document.createElement("div");
+    el.className = "hit-number";
+    el.textContent = "-" + Math.floor(damage);
+    el.style.left = (30 + Math.random() * 40) + "%";
+    el.style.top  = (20 + Math.random() * 40) + "%";
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
+  function flashBossHit() {
+    const canvas = document.getElementById("boss-canvas");
+    if (!canvas) return;
+    canvas.classList.add("boss-hit-flash");
+    setTimeout(() => canvas.classList.remove("boss-hit-flash"), 150);
   }
 
   // ==========================
@@ -511,7 +584,7 @@ stageNext.addEventListener("click", () => {
       stage, bossHp, bossMaxHp, maxStageReached,
       soulShards: soulShards ?? 0,
       playerLevel, playerExp, gold, totalBossKills,
-      bonusDps
+      bonusAtk
     };
     localStorage.setItem("idleGameSave", JSON.stringify(saveData));
   }
@@ -533,9 +606,9 @@ stageNext.addEventListener("click", () => {
     playerExp       = data.playerExp       ?? 0;
     gold            = data.gold            ?? 0;
     totalBossKills  = data.totalBossKills  ?? 0;
-    // bonusDps gespeichert nehmen, Fallback: level-1 (für alte Saves ohne bonusDps)
-    bonusDps        = data.bonusDps        ?? (playerLevel - 1);
-    updateDps();
+    // bonusAtk gespeichert nehmen, Fallback: level-1 (für alte Saves ohne bonusAtk)
+    bonusAtk        = data.bonusAtk        ?? (playerLevel - 1);
+    updateAtk();
     updateShardDisplay();
     updateExpUI();
     updateGoldUI();
@@ -547,7 +620,7 @@ stageNext.addEventListener("click", () => {
   // ==========================
   loadGame();
   spawnBoss();
-  updateDps();
+  updateAtk();
   updateExpUI();
   updateGoldUI();
   idleLoop();

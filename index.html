@@ -50,6 +50,11 @@
         </div>
         <div id="boss-hp-text"></div>
       </div>
+
+      <!-- Boss Grafik -->
+      <div id="boss-canvas-wrap">
+        <canvas id="boss-canvas" width="220" height="180"></canvas>
+      </div>
     </section>
 
     <!-- ══ PLAYER EXP BAR ══ -->
@@ -75,7 +80,7 @@
         <span><span class="rune">᛫</span> Inventory <span class="rune">᛫</span></span>
         <div id="stats-row">
           <div id="gold-badge">💰 <span id="gold-amount">0</span> <span class="dps-label">GOLD</span></div>
-          <div id="dps-badge">⚔ <span id="dpstext">1</span> <span class="dps-label">DPS</span></div>
+          <div id="dps-badge">⚔ <span id="atktext">1</span> <span class="dps-label">ATK</span></div>
           <div id="shard-badge">✦ <span id="shardtext">0</span> <span class="dps-label">SHARDS</span></div>
         </div>
       </div>
@@ -139,6 +144,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="auth-guard.js"></script>
+<script src="boss-art.js"></script>
 <script src="main.js"></script>
 <script src="tabs.js"></script>
 <script src="chat.js"></script>

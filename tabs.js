@@ -74,7 +74,7 @@ function buildProfileTab() {
       <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-bottom:10px;">⚔ STATISTICS</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         ${statCard("💰", "Gold", fmt(goldVal), "#f0c030")}
-        ${statCard("⚔", "DPS", fmt(dps), "#c09030")}
+        ${statCard("⚔", "ATK", fmt(window.gameState?.atk ?? 1), "#c09030")}
         ${statCard("☠", "Boss Kills", fmt(bossKills), "#cc4040")}
         ${statCard("🏆", "Max Stage", maxStage, "#6080ff")}
       </div>
